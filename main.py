@@ -99,16 +99,32 @@ def main():
     print("[4/5] Creating branch + commit + push")
     branch_name = f"autopatcher/fix-sqli-{datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")}"
 
+    # Create branch
     run(["git", "checkout", "-B", branch_name], cwd=repo_path)
+
+    # Ensure git identity exists (required on GitHub Actions runners)
+    run(
+        ["git", "config", "user.email", "auditshield-bot@users.noreply.github.com"],
+        cwd=repo_path,
+    )
+    run(
+        ["git", "config", "user.name", "auditshield-bot"],
+        cwd=repo_path,
+    )
+    # Stage changes
     run(["git", "add", "."], cwd=repo_path)
 
     # Only commit if there are changes
     status = run(["git", "status", "--porcelain"], cwd=repo_path)
     if status.stdout.strip():
-        run(["git", "commit", "-m", "Fix SQL injection by parameterizing query"], cwd=repo_path)
+        run(
+            ["git", "commit", "-m", "Fix SQL injection by parameterizing query"],
+            cwd=repo_path,
+        )
         run(["git", "push", "-u", "origin", branch_name], cwd=repo_path)
     else:
         print("No changes to commit.")
+
 
     print("[5/5] Opening PR (or reusing existing)")
     pr_url = open_or_get_pr(
