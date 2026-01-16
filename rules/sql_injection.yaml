@@ -1,0 +1,19 @@
+rules:
+  - id: python-sql-injection-fstring
+    message: Possible SQL injection via string formatting.
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      confidence: high
+    patterns:
+      - pattern-either:
+          # Case 1: f-string directly in execute
+          - pattern: |
+              $CURSOR.execute(f"...")
+
+          # Case 2: formatted string assigned then executed
+          - pattern: |
+              $QUERY = f"..."
+              ...
+              $CURSOR.execute($QUERY)
