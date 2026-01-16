@@ -1,0 +1,16 @@
+name: "AuditShield"
+description: "Detects compliance-grade security issues, applies deterministic fixes, and opens a Pull Request"
+inputs:
+  github_token:
+    description: "GitHub token (use secrets.GITHUB_TOKEN)"
+    required: true
+  base_branch:
+    description: "Base branch to target"
+    required: false
+    default: "main"
+runs:
+  using: "docker"
+  image: "Dockerfile"
+branding:
+  icon: "shield"
+  color: "blue"
