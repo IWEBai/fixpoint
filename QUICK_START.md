@@ -58,24 +58,28 @@ ls
 
 ### Step 3: Run Setup Commands
 
-**All commands should be run from `e:\auditshield` directory:**
+**⚠️ IMPORTANT: Always run scripts from `e:\auditshield`, NOT from inside the demo repo!**
 
 ```powershell
-# You should be here:
+# You should be here (main auditshield directory):
 cd e:\auditshield
 
 # Step 1: Create GitHub Release
 gh release create v0.1.0 --title "v0.1.0 - Warn-First Release" --notes-file RELEASE_NOTES.md
 
-# Step 2: Set up demo repository
+# Step 2: Set up demo repository (if not already done)
 .\scripts\setup_demo.ps1
 
 # Step 3: Create PR A (violation)
+# ⚠️ Run from e:\auditshield, NOT from inside autopatcher-demo-python!
 .\scripts\create_pr_violation.ps1
 
 # Step 4: Create PR B (clean)
+# ⚠️ Run from e:\auditshield, NOT from inside autopatcher-demo-python!
 .\scripts\create_pr_clean.ps1
 ```
+
+**Note:** The scripts automatically navigate to the demo repo. You don't need to `cd` into `autopatcher-demo-python` first.
 
 ---
 

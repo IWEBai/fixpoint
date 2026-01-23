@@ -55,7 +55,15 @@ git push
 
 ## Next Command to Run
 
+**⚠️ IMPORTANT: Run scripts from `e:\auditshield`, NOT from inside the demo repo!**
+
 ```powershell
+# Make sure you're in the main auditshield directory
 cd e:\auditshield
-.\scripts\setup_demo.ps1
+
+# Then run the scripts (they will handle the demo repo)
+.\scripts\create_pr_violation.ps1
+.\scripts\create_pr_clean.ps1
 ```
+
+**Note:** The scripts automatically navigate to the demo repo directory. You don't need to `cd` into it first.
