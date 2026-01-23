@@ -12,31 +12,16 @@
 
 - [x] **Step 3: Create PR A (violation)**
   - ✅ PR created: https://github.com/zariffromlatif/autopatcher-demo-python/pull/3
-  - ⚠️ **TODO:** Update README.md line 115 with this PR link
+
+- [x] **Step 4: Create PR B (clean)**
+  - ✅ PR created: https://github.com/zariffromlatif/autopatcher-demo-python/pull/4
+
+- [x] **Step 5: Update README.md**
+  - ✅ Updated with actual PR links (PR #3 and PR #4)
 
 ---
 
 ## 🔲 Remaining Steps
-
-### Step 4: Create PR B (clean)
-```powershell
-# Make sure you're in e:\auditshield directory first!
-cd e:\auditshield
-.\scripts\create_pr_clean.ps1
-```
-**What it does:**
-- Creates branch with safe code
-- Opens PR
-- **Copy PR URL from output** → Update README.md line 121
-
-### Step 4: Create PR B (clean)
-```powershell
-.\scripts\create_pr_clean.ps1
-```
-**What it does:**
-- Creates branch with safe code
-- Opens PR
-- **Copy PR URL from output** → Update README.md line 121
 
 ### Step 5: Configure required check (manual)
 - Go to: https://github.com/zariffromlatif/autopatcher-demo-python/settings/branches
