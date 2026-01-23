@@ -135,9 +135,12 @@ gh pr create --title "Add user lookup" --body "Adds user lookup function"
 ```
 
 **Expected result:**
-- ✅ AuditShield posts comment with proposed fix
+- ✅ AuditShield posts comment with proposed fix (shows diff preview)
 - ✅ Status check shows **FAIL** (`auditshield/compliance`)
 - ✅ Merge is **blocked** (if required check configured)
+
+**After creating PR, copy the PR link and update README.md:**
+- Replace `https://github.com/zariffromlatif/autopatcher-demo-python/pull/1` with actual PR link
 
 **PR #2: Clean Code (should PASS)**
 
@@ -172,6 +175,10 @@ gh pr create --title "Add safe user lookup" --body "Adds safe user lookup functi
 - ✅ Status check shows **PASS** (`auditshield/compliance`)
 - ✅ No comments (no violations)
 - ✅ Merge allowed
+
+**After creating PR #2:**
+1. Copy the PR link (e.g., `https://github.com/zariffromlatif/autopatcher-demo-python/pull/2`)
+2. Update `README.md` → Replace placeholder link for "PR B: Clean Code"
 
 ### 7. Verify Demo Works
 
