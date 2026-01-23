@@ -5,8 +5,20 @@ $GITHUB_USER = "zariffromlatif"
 
 Write-Host "Creating demo repository: $REPO_NAME" -ForegroundColor Green
 
-# Create repository
-gh repo create $REPO_NAME --public --clone
+# Check if repo already exists
+$repoExists = gh repo view "$GITHUB_USER/$REPO_NAME" 2>$null
+if ($LASTEXITCODE -eq 0) {
+    Write-Host "Repository already exists on GitHub. Cloning..." -ForegroundColor Yellow
+    if (Test-Path $REPO_NAME) {
+        Write-Host "Local directory already exists. Removing..." -ForegroundColor Yellow
+        Remove-Item -Recurse -Force $REPO_NAME
+    }
+    gh repo clone "$GITHUB_USER/$REPO_NAME"
+} else {
+    # Create new repository
+    Write-Host "Creating new repository..." -ForegroundColor Green
+    gh repo create $REPO_NAME --public --clone
+}
 
 Set-Location $REPO_NAME
 

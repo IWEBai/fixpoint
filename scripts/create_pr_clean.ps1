@@ -5,9 +5,15 @@ $BRANCH = "feature/add-safe-user-lookup"
 
 Write-Host "Creating PR B: Clean Code (PASS)" -ForegroundColor Green
 
+# Check if repo exists locally, if not, clone it
 if (-not (Test-Path $REPO_NAME)) {
-    Write-Host "Error: Demo repo not found. Run scripts/setup_demo.ps1 first" -ForegroundColor Red
-    exit 1
+    Write-Host "Demo repo not found locally. Cloning..." -ForegroundColor Yellow
+    $GITHUB_USER = "zariffromlatif"
+    gh repo clone "$GITHUB_USER/$REPO_NAME"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Error: Could not clone demo repo. Run scripts/setup_demo.ps1 first" -ForegroundColor Red
+        exit 1
+    }
 }
 
 Set-Location $REPO_NAME
