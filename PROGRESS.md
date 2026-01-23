@@ -7,27 +7,27 @@
   - ✅ Created release: https://github.com/zariffromlatif/auditshield/releases/tag/v0.1.0
   - ✅ Release includes RELEASE_NOTES.md
 
+- [x] **Step 2: Set up demo repository**
+  - ✅ Demo repo exists: https://github.com/zariffromlatif/autopatcher-demo-python
+
+- [x] **Step 3: Create PR A (violation)**
+  - ✅ PR created: https://github.com/zariffromlatif/autopatcher-demo-python/pull/3
+  - ⚠️ **TODO:** Update README.md line 115 with this PR link
+
 ---
 
 ## 🔲 Remaining Steps
 
-### Step 2: Set up demo repository
+### Step 4: Create PR B (clean)
 ```powershell
-.\scripts\setup_demo.ps1
+# Make sure you're in e:\auditshield directory first!
+cd e:\auditshield
+.\scripts\create_pr_clean.ps1
 ```
 **What it does:**
-- Creates `autopatcher-demo-python` repository
-- Adds workflow file
-- Creates initial commit
-
-### Step 3: Create PR A (violation)
-```powershell
-.\scripts\create_pr_violation.ps1
-```
-**What it does:**
-- Creates branch with SQL injection vulnerability
+- Creates branch with safe code
 - Opens PR
-- **Copy PR URL from output** → Update README.md line 115
+- **Copy PR URL from output** → Update README.md line 121
 
 ### Step 4: Create PR B (clean)
 ```powershell

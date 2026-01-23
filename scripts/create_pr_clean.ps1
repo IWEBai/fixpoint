@@ -56,3 +56,6 @@ Write-Host "- ✅ Merge allowed"
 Write-Host "`nUpdate README.md with this PR link:" -ForegroundColor Cyan
 Write-Host "Replace: https://github.com/zariffromlatif/autopatcher-demo-python/pull/2"
 Write-Host "With: $PR_URL"
+
+# Return to original directory
+Set-Location ..
