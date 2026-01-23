@@ -109,18 +109,25 @@ Create `.auditshieldignore` in your repo root.
 
 **Try it now:** [autopatcher-demo-python](https://github.com/zariffromlatif/autopatcher-demo-python)
 
-The demo repo includes:
-- ✅ **PR #1 with violation** — Shows warn mode comment + FAIL status check
-- ✅ **PR #2 with clean code** — Shows PASS status
-- ✅ Workflow installed and working
-- ✅ Required check configured (blocks merges)
+### Live PRs
 
-**What you'll see:**
-1. Open PR #1 with SQL injection violation
-2. AuditShield posts comment with proposed fix
-3. Status check shows **FAIL** (merge blocked)
-4. Switch to enforce mode → fix auto-applied
-5. Status check shows **PASS** (merge allowed)
+**PR A: Violation (FAIL + Comment)**
+- [PR with SQL injection violation](https://github.com/zariffromlatif/autopatcher-demo-python/pull/3)
+- ✅ AuditShield posts comment with proposed fix (diff preview)
+- ✅ Status check shows **FAIL** (`auditshield/compliance`)
+- ✅ Merge blocked (if required check configured)
+
+**PR B: Clean Code (PASS)**
+- [PR with safe parameterized query](https://github.com/zariffromlatif/autopatcher-demo-python/pull/4)
+- ✅ Status check shows **PASS**
+- ✅ No violations found
+- ✅ Merge allowed
+
+### What You'll See
+
+1. **PR A** → Comment with fix proposal + FAIL status (merge blocked)
+2. **PR B** → PASS status (merge allowed)
+3. Switch to enforce mode → PR A fix auto-applied → Status changes to PASS
 
 ---
 
