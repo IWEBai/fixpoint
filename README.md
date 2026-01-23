@@ -63,7 +63,7 @@ jobs:
 **Start in warn mode** (default) to build trust:
 
 ```yaml
-- uses: your-org/auditshield@v0.1.0
+- uses: zariffromlatif/auditshield@v0.1.0
   with:
     mode: warn  # Comments only, no commits
 ```
@@ -71,7 +71,7 @@ jobs:
 **Graduate to enforce mode** once you trust the fixes:
 
 ```yaml
-- uses: your-org/auditshield@v0.1.0
+- uses: zariffromlatif/auditshield@v0.1.0
   with:
     mode: enforce  # Auto-applies fixes
 ```
@@ -107,21 +107,20 @@ Create `.auditshieldignore` in your repo root.
 
 ## Demo
 
-**Try it now:** [autopatcher-demo-python](https://github.com/your-org/autopatcher-demo-python)
+**Try it now:** [autopatcher-demo-python](https://github.com/zariffromlatif/autopatcher-demo-python)
 
 The demo repo includes:
-- ✅ PR with violation (shows warn mode comment + status check)
-- ✅ PR with clean code (shows PASS status)
+- ✅ **PR #1 with violation** — Shows warn mode comment + FAIL status check
+- ✅ **PR #2 with clean code** — Shows PASS status
 - ✅ Workflow installed and working
+- ✅ Required check configured (blocks merges)
 
 **What you'll see:**
-1. Open a PR with SQL injection violation
+1. Open PR #1 with SQL injection violation
 2. AuditShield posts comment with proposed fix
-3. Status check shows FAIL
+3. Status check shows **FAIL** (merge blocked)
 4. Switch to enforce mode → fix auto-applied
-5. Status check shows PASS
-
-> **Note:** Replace `your-org` with your GitHub organization/username in the demo repo link above.
+5. Status check shows **PASS** (merge allowed)
 
 ---
 
@@ -263,5 +262,5 @@ See [ROADMAP.md](./ROADMAP.md) for details.
 
 ## Support
 
-- Issues: [GitHub Issues](https://github.com/your-org/auditshield/issues)
+- Issues: [GitHub Issues](https://github.com/zariffromlatif/auditshield/issues)
 - Docs: [Full Documentation](./IMPLEMENTATION_LOG.md)

@@ -111,15 +111,20 @@ Now AuditShield will actually block merges until violations are fixed.
 # Create branch
 git checkout -b feature/add-user-lookup
 
-# Add vulnerable code
-echo 'import sqlite3
+# Add vulnerable code (SQL injection)
+cat > app.py << 'EOF'
+import sqlite3
 
 def get_user(email):
     conn = sqlite3.connect("users.db")
     cursor = conn.cursor()
-    query = f"SELECT * FROM users WHERE email = '\''{email}'\''"
+    
+    # SQL injection vulnerability
+    query = f"SELECT * FROM users WHERE email = '{email}'"
     cursor.execute(query)
-    return cursor.fetchone()' > app.py
+    
+    return cursor.fetchone()
+EOF
 
 git add app.py
 git commit -m "Add user lookup function"
@@ -129,21 +134,31 @@ git push origin feature/add-user-lookup
 gh pr create --title "Add user lookup" --body "Adds user lookup function"
 ```
 
+**Expected result:**
+- ✅ AuditShield posts comment with proposed fix
+- ✅ Status check shows **FAIL** (`auditshield/compliance`)
+- ✅ Merge is **blocked** (if required check configured)
+
 **PR #2: Clean Code (should PASS)**
 
 ```bash
 # Create branch
 git checkout -b feature/add-safe-user-lookup
 
-# Add safe code
-echo 'import sqlite3
+# Add safe code (parameterized query)
+cat > app.py << 'EOF'
+import sqlite3
 
 def get_user(email):
     conn = sqlite3.connect("users.db")
     cursor = conn.cursor()
+    
+    # Safe parameterized query
     query = "SELECT * FROM users WHERE email = ?"
     cursor.execute(query, (email,))
-    return cursor.fetchone()' > app.py
+    
+    return cursor.fetchone()
+EOF
 
 git add app.py
 git commit -m "Add safe user lookup function"
@@ -152,6 +167,11 @@ git push origin feature/add-safe-user-lookup
 # Create PR
 gh pr create --title "Add safe user lookup" --body "Adds safe user lookup function"
 ```
+
+**Expected result:**
+- ✅ Status check shows **PASS** (`auditshield/compliance`)
+- ✅ No comments (no violations)
+- ✅ Merge allowed
 
 ### 7. Verify Demo Works
 
@@ -189,8 +209,8 @@ This repository demonstrates AuditShield in action.
 
 ## Learn More
 
-- [AuditShield Documentation](https://github.com/your-org/auditshield)
-- [Installation Guide](https://github.com/your-org/auditshield#install)
+- [AuditShield Documentation](https://github.com/zariffromlatif/auditshield)
+- [Installation Guide](https://github.com/zariffromlatif/auditshield#install)
 ```
 
 ## Testing Checklist
