@@ -1,16 +1,49 @@
 name: "AuditShield"
-description: "Detects compliance-grade security issues, applies deterministic fixes, and opens a Pull Request"
+description: "Detects compliance-grade security issues, applies deterministic fixes, and sets status checks"
 inputs:
   github_token:
     description: "GitHub token (use secrets.GITHUB_TOKEN)"
-    required: true
+    required: false
   base_branch:
-    description: "Base branch to target"
+    description: "Base branch to compare against (default: main)"
     required: false
     default: "main"
+  mode:
+    description: "Mode: 'warn' (status check only) or 'enforce' (apply fixes)"
+    required: false
+    default: "warn"
 runs:
-  using: "docker"
-  image: "Dockerfile"
+  using: "composite"
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Fetch full history for diff
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install -r requirements.txt
+      shell: bash
+    
+    - name: Install Semgrep
+      run: |
+        pip install semgrep
+      shell: bash
+    
+    - name: Run AuditShield
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token || github.token }}
+        INPUT_MODE: ${{ inputs.mode }}
+        INPUT_BASE_BRANCH: ${{ inputs.base_branch }}
+      run: |
+        python entrypoint.py
+      shell: bash
 branding:
   icon: "shield"
   color: "blue"

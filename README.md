@@ -1,126 +1,267 @@
-# AuditShield (Compliance Auto-Patcher) — MVP
+# AuditShield — Compliance Auto-Patcher
 
-AuditShield is a compliance-focused auto-remediation bot that **detects a small set of high-confidence security violations**, applies **deterministic fixes**, and opens **human-reviewable Pull Requests**.
+**Turn security compliance blockers into instant pull requests.**
 
-It is intentionally restrictive:
-
-- No auto-merge
-- No "AI guesses"
-- Minimal diffs
-- Full audit trail via Git + PR
-
-AuditShield is built for teams preparing for **SOC2 / ISO 27001 / enterprise security audits**, where the problem is not finding issues — it's fixing them correctly and fast.
+AuditShield automatically fixes compliance-blocking security issues in your PRs, reducing time-to-merge from days to minutes.
 
 ---
 
-## Why this exists
+## What It Is
 
-Most AppSec tools (Snyk / CodeQL / Semgrep) are great at **finding** issues, but they stop at alerts.  
-Developers then spend hours fixing repetitive compliance-driven problems right before audits.
+AuditShield is a **deterministic compliance gate** that:
+- Scans PR diffs for security violations (SQL injection, etc.)
+- Proposes fixes in **warn mode** (comments only)
+- Applies fixes in **enforce mode** (auto-commits)
+- Sets GitHub status checks (PASS/FAIL gates)
 
-AuditShield's goal is simple:
-
-> Don't just flag compliance blockers. **Ship the fix as a PR.**
+**Philosophy:** Deterministic-first. Same input → same output. No AI hallucinations.
 
 ---
 
-## Example (what AuditShield actually does)
+## Install
 
-### Before (non-compliant)
+Add this to `.github/workflows/auditshield.yml`:
 
+```yaml
+name: AuditShield
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+  statuses: write
+
+jobs:
+  auditshield:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
+
+      - name: AuditShield (warn-first)
+        uses: zariffromlatif/auditshield@v0.1.0
+        with:
+          mode: warn  # change to "enforce" to auto-apply fixes (non-forks only)
+          base_branch: ${{ github.base_ref }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+**Notes:**
+- **Fork PRs automatically run in warn mode** (no write access to forks)
+- **To enforce**, set `mode: enforce` (applies fixes automatically for non-fork PRs)
+
+---
+
+## Warn → Enforce
+
+**Start in warn mode** (default) to build trust:
+
+```yaml
+- uses: your-org/auditshield@v0.1.0
+  with:
+    mode: warn  # Comments only, no commits
+```
+
+**Graduate to enforce mode** once you trust the fixes:
+
+```yaml
+- uses: your-org/auditshield@v0.1.0
+  with:
+    mode: enforce  # Auto-applies fixes
+```
+
+**Warn mode:**
+- Posts PR comments with proposed fixes
+- Sets status check to FAIL
+- No commits made
+
+**Enforce mode:**
+- Applies fixes automatically
+- Commits to PR branch
+- Sets status check to PASS
+
+---
+
+## .auditshieldignore
+
+Exclude files/directories from scanning (similar to `.gitignore`):
+
+```bash
+# .auditshieldignore
+tests/
+test_*.py
+legacy/
+migrations/
+third_party/
+```
+
+Create `.auditshieldignore` in your repo root.
+
+---
+
+## Demo
+
+**Try it now:** [autopatcher-demo-python](https://github.com/your-org/autopatcher-demo-python)
+
+The demo repo includes:
+- ✅ PR with violation (shows warn mode comment + status check)
+- ✅ PR with clean code (shows PASS status)
+- ✅ Workflow installed and working
+
+**What you'll see:**
+1. Open a PR with SQL injection violation
+2. AuditShield posts comment with proposed fix
+3. Status check shows FAIL
+4. Switch to enforce mode → fix auto-applied
+5. Status check shows PASS
+
+> **Note:** Replace `your-org` with your GitHub organization/username in the demo repo link above.
+
+---
+
+## How It Works
+
+1. **Detect** — Scans PR diff for violations (SQL injection, etc.)
+2. **Propose** — Posts comment with deterministic fix (warn mode)
+3. **Apply** — Commits fix to PR branch (enforce mode)
+4. **Gate** — Sets status check (PASS/FAIL)
+
+**Result:** Reduced time-to-merge for compliance-blocking findings.
+
+---
+
+## Status Checks
+
+AuditShield sets GitHub status checks:
+
+- **PASS** — No violations found
+- **FAIL** — Violations found (warn mode) or fixes failed
+- **PASS** — Violations found and fixed (enforce mode)
+
+### Configure as Required Check (Block Merges)
+
+To make AuditShield a true gate that blocks merges:
+
+1. Go to **Settings → Branches → Branch protection rules**
+2. Enable **"Require status checks to pass before merging"**
+3. Select: `auditshield/compliance` (your status context)
+4. Save
+
+Now merges are blocked until compliance violations are fixed.
+
+---
+
+## Example Fix
+
+**Before (non-compliant):**
 ```python
 query = f"SELECT * FROM users WHERE email = '{email}'"
 cursor.execute(query)
 ```
 
-### Problem
-
-- SQL injection risk
-- Violates SOC2 / OWASP secure coding requirements
-
-### After (auto-generated PR)
-
+**After (auto-fixed):**
 ```python
 query = "SELECT * FROM users WHERE email = %s"
 cursor.execute(query, (email,))
 ```
 
-AuditShield:
+---
 
-- Detects the violation
-- Applies a deterministic fix
-- Creates a branch, commit, and Pull Request
-- Leaves final approval to a human
+## Philosophy
 
-## What it does (MVP scope)
+**Deterministic-first:**
+- Same input → same output
+- Rule-based fixes (no AI hallucinations)
+- Verifiable and reproducible
+- Bounded fix space
 
-The current MVP is a single vertical slice, intentionally narrow:
+**Trust through progression:**
+- Start in warn mode (review fixes)
+- Graduate to enforce mode (auto-apply)
+- Time-to-merge is the metric
 
-- Language: Python
-- Detection: Semgrep rule
-- Violation: SQL injection via string formatting
-- Fix: Parameterized queries
-- Output: Git branch + commit + Pull Request
+---
 
-## What it does NOT do
-
-AuditShield is not a general auto-fix engine:
-
-- It does not fix arbitrary bugs
-- It does not refactor code
-- It does not auto-merge Pull Requests
-- It does not generate creative or probabilistic fixes
-
-Only deterministic, audit-safe changes are allowed.
-
-## Demo (one command)
-
-### Requirements
+## Requirements
 
 - Python 3.12+
-- semgrep installed
-- Git
-- A GitHub Personal Access Token (repo scope)
+- GitHub repository
+- GitHub Actions (or webhook server)
 
-### 1) Configure environment
+---
 
-Create a .env file in the project root:
-
-```env
-GITHUB_TOKEN=PASTE_YOUR_TOKEN_HERE
-GITHUB_OWNER=your_github_username
-GITHUB_REPO=your_repo_name
-```
-
-### 2) Run AuditShield
+## CLI Usage
 
 ```bash
-python main.py /path/to/target-repo
+# Warn mode (propose fixes, don't apply)
+python main.py /path/to/repo --warn-mode
+
+# Enforce mode (apply fixes)
+python main.py /path/to/repo
+
+# PR diff mode
+python main.py /path/to/repo --pr-mode --base-ref main --head-ref feature-branch
 ```
 
-If a supported violation is found, AuditShield will:
+---
 
-- Apply a safe fix
-- Commit the change
-- Push a branch
-- Open (or reuse) a Pull Request
+## Webhook Server
 
-## Intended users
+For self-hosted deployments:
 
-- B2B SaaS startups (Seed → Series C)
-- Teams preparing for SOC2 / ISO 27001 audits
-- CTOs / DevOps leads tired of last-minute compliance fire drills
+```bash
+# Install dependencies
+pip install -r requirements.txt
 
-## Status
+# Configure .env
+WEBHOOK_SECRET=your_secret_here
+AUDITSHIELD_MODE=warn
 
-This is an early MVP built to validate:
+# Start server
+python webhook_server.py
+```
 
-- Trust model
-- Developer acceptance
-- CI/CD workflow integration
+Configure GitHub webhook:
+- URL: `https://your-domain.com/webhook`
+- Events: `pull_request` (opened, synchronize)
+- Secret: Your `WEBHOOK_SECRET`
 
-Coverage will expand only where fixes remain deterministic and compliance-safe.
+---
 
-## Vision
+## What AuditShield Does NOT Do
 
-AuditShield becomes the compliance engineer in your CI/CD pipeline — silently fixing what must be fixed, and leaving the rest to humans.
+- ❌ Fix arbitrary bugs
+- ❌ Refactor code
+- ❌ Auto-merge PRs
+- ❌ Generate creative fixes
+
+Only deterministic, compliance-safe changes.
+
+---
+
+## Roadmap
+
+- **v0.1.0** (current) — Warn mode, status checks, AST-based fixer
+- **v0.2.0** — Multi-language support (JavaScript, TypeScript)
+- **v0.3.0** — More violation types (PII logging, secrets)
+
+See [ROADMAP.md](./ROADMAP.md) for details.
+
+---
+
+## License
+
+[Your License Here]
+
+---
+
+## Support
+
+- Issues: [GitHub Issues](https://github.com/your-org/auditshield/issues)
+- Docs: [Full Documentation](./IMPLEMENTATION_LOG.md)

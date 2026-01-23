@@ -1,153 +1,233 @@
+"""
+AuditShield - Compliance Auto-Patcher
+Main entry point supporting both CLI mode (Phase 1) and PR diff mode (Phase 2).
+"""
 from __future__ import annotations
 
 import argparse
-from email.mime import text
-import json
 import os
-import subprocess
 from pathlib import Path
-from datetime import datetime, timezone
-
 
 from dotenv import load_dotenv
 
-# Import our existing components
-# (We will make fix_sqli accept a repo path in Step A2)
-from github_bot.open_pr import open_or_get_pr  # we'll create this function in Step A3
+from core.scanner import semgrep_scan, get_pr_diff_files_local
+from core.fixer import process_findings
+from core.git_ops import commit_and_push_new_branch, commit_and_push_to_existing_branch, generate_branch_name
+from core.pr_comments import create_warn_comment
+from core.status_checks import set_compliance_status
+from core.ignore import filter_ignored_files
+from github_bot.open_pr import open_or_get_pr
 
 
-def run(cmd: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess:
+def process_repo_scan(
+    repo_path: Path,
+    rules_path: Path,
+    results_path: Path,
+    pr_mode: bool = False,
+    base_ref: str | None = None,
+    head_ref: str | None = None,
+) -> tuple[bool, list[dict]]:
     """
-    Run a command and raise a readable error if it fails.
-    Windows-safe: force UTF-8 decoding (and ignore undecodable chars).
+    Scan repository and process findings.
+    
+    Args:
+        repo_path: Path to repository
+        rules_path: Path to Semgrep rules
+        results_path: Path to write results JSON
+        pr_mode: If True, only scan changed files in PR diff
+        base_ref: Base git ref for PR diff (required if pr_mode=True)
+        head_ref: Head git ref for PR diff (required if pr_mode=True)
+    
+    Returns:
+        Tuple of (any_changes, processed_findings)
     """
-    p = subprocess.run(
-        cmd,
-        cwd=str(cwd) if cwd else None,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
-    if p.returncode != 0:
-        raise RuntimeError(
-            f"Command failed: {' '.join(cmd)}\n\nSTDOUT:\n{p.stdout}\n\nSTDERR:\n{p.stderr}"
-        )
-    return p
-
-
-
-def semgrep_scan(repo_path: Path, rules_path: Path, out_json: Path) -> dict:
-    """Run semgrep and write JSON to out_json."""
-    cmd = [
-        "semgrep",
-        "--config",
-        str(rules_path),
-        "--json",
-        "--output",
-        str(out_json),
-        str(repo_path),
-    ]
-    run(cmd)
-    raw = out_json.read_bytes()
-    text = raw.decode("utf-8-sig", errors="replace")
-    return json.loads(text)
-
+    target_files = None
+    
+    if pr_mode:
+        if not base_ref or not head_ref:
+            raise ValueError("base_ref and head_ref required for PR mode")
+        print(f"[1/5] Scanning PR diff: {base_ref}..{head_ref}")
+        target_files = get_pr_diff_files_local(repo_path, base_ref, head_ref)
+        # Filter to Python files only (Phase 1 limitation)
+        target_files = [f for f in target_files if f.endswith(".py")]
+        if not target_files:
+            print("No Python files changed in PR diff.")
+            return False, []
+        # Apply .auditshieldignore
+        target_files = filter_ignored_files(target_files, repo_path)
+        if not target_files:
+            print("All files ignored by .auditshieldignore.")
+            return False, []
+        print(f"Changed Python files: {len(target_files)}")
+    else:
+        print(f"[1/5] Scanning repository for compliance violations: {repo_path}")
+    
+    # Run Semgrep scan
+    data = semgrep_scan(repo_path, rules_path, results_path, target_files, apply_ignore=True)
+    
+    results = data.get("results", [])
+    if not results:
+        print("No findings. Exiting.")
+        return False, []
+    
+    print(f"[2/5] Findings: {len(results)}")
+    
+    # Process findings and apply fixes
+    print("[3/5] Applying fixes (deterministic)")
+    any_changes, processed = process_findings(repo_path, results, rules_path)
+    
+    if not any_changes:
+        print("No fixes applied (already safe or pattern mismatch).")
+        return False, processed
+    
+    fixed_count = len([p for p in processed if p["fixed"]])
+    print(f"Applied fixes to {fixed_count} file(s)")
+    
+    return any_changes, processed
 
 
 def main():
     load_dotenv()
-
-    parser = argparse.ArgumentParser(description="Compliance Auto-Patcher (MVP)")
+    
+    parser = argparse.ArgumentParser(
+        description="AuditShield: Turn security compliance blockers into instant pull requests"
+    )
     parser.add_argument("repo", type=str, help="Path to local git repo to patch")
+    parser.add_argument(
+        "--pr-mode",
+        action="store_true",
+        help="PR diff mode: only scan changed files between base and head refs",
+    )
+    parser.add_argument(
+        "--base-ref",
+        type=str,
+        help="Base git ref for PR diff mode (e.g., 'main' or commit SHA)",
+    )
+    parser.add_argument(
+        "--head-ref",
+        type=str,
+        help="Head git ref for PR diff mode (e.g., 'feature-branch' or commit SHA)",
+    )
+    parser.add_argument(
+        "--push-to-existing",
+        type=str,
+        help="Push to existing branch instead of creating new one (branch name)",
+    )
+    parser.add_argument(
+        "--no-pr",
+        action="store_true",
+        help="Don't create/open PR (just commit and push)",
+    )
+    parser.add_argument(
+        "--warn-mode",
+        action="store_true",
+        help="Warn mode: propose fixes in comments, don't apply",
+    )
+    
     args = parser.parse_args()
-
+    
     repo_path = Path(args.repo).resolve()
     if not repo_path.exists():
         raise FileNotFoundError(f"Repo path does not exist: {repo_path}")
-
+    
     rules_path = Path(__file__).parent / "rules" / "sql_injection.yaml"
     results_path = Path("semgrep_results.json")
-
-    print(f"[1/5] Scanning repo with Semgrep: {repo_path}")
-    data = semgrep_scan(repo_path, rules_path, results_path)
-
-    results = data.get("results", [])
-    if not results:
-        print("No findings. Exiting.")
+    
+    # Process scan
+    any_changes, processed = process_repo_scan(
+        repo_path,
+        rules_path,
+        results_path,
+        pr_mode=args.pr_mode,
+        base_ref=args.base_ref,
+        head_ref=args.head_ref,
+    )
+    
+    if not any_changes:
         return
-
-    print(f"[2/5] Findings: {len(results)}")
-    # For MVP: only process the first finding
-    finding = results[0]
-    file_path = finding.get("path")
-    start = finding.get("start", {}).get("line")
-    message = finding.get("extra", {}).get("message", "").strip()
-
-    print(f" - file: {file_path}")
-    print(f" - line: {start}")
-    print(f" - msg : {message}")
-
-    print("[3/5] Applying SQLi fix (deterministic)")
-    # Step A2 will implement this function properly
-    from patcher.fix_sqli import apply_fix_sqli
-
-    changed = apply_fix_sqli(repo_path)
-    if not changed:
-        print("No fix applied (already safe or pattern mismatch).")
-
-    print("[4/5] Creating branch + commit + push")
-    branch_name = f"autopatcher/fix-sqli-{datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")}"
-
-    # Create branch
-    run(["git", "checkout", "-B", branch_name], cwd=repo_path)
-
-    # Ensure git identity exists (required on GitHub Actions runners)
-    run(
-        ["git", "config", "user.email", "auditshield-bot@users.noreply.github.com"],
-        cwd=repo_path,
-    )
-    run(
-        ["git", "config", "user.name", "auditshield-bot"],
-        cwd=repo_path,
-    )
-    # Stage changes
-    run(["git", "add", "."], cwd=repo_path)
-
-    # Only commit if there are changes
-    status = run(["git", "status", "--porcelain"], cwd=repo_path)
-    if status.stdout.strip():
-        run(
-            ["git", "commit", "-m", "Fix SQL injection by parameterizing query"],
-            cwd=repo_path,
+    
+    # WARN MODE: Propose fixes without applying
+    if args.warn_mode:
+        print("[4/5] Warn mode: Proposing fixes (not applying)")
+        from patcher.fix_sqli import propose_fix_sqli
+        
+        proposed_fixes = []
+        for p in processed:
+            if p.get("finding"):
+                finding = p["finding"]
+                file_path = p["file"]
+                proposal = propose_fix_sqli(repo_path, file_path)
+                if proposal:
+                    proposed_fixes.append(proposal)
+        
+        if proposed_fixes:
+            # Get PR number if available (for CLI, we'll just print)
+            print("\n=== Proposed Fixes (Warn Mode) ===\n")
+            for fix in proposed_fixes:
+                print(f"File: {fix['file']}:{fix['line']}")
+                print(f"Before: {fix['before']}")
+                print(f"After:  {fix['after']}")
+                print(f"Execute before: {fix['exec_before']}")
+                print(f"Execute after:  {fix['exec_after']}")
+                print()
+            
+            print("To apply these fixes automatically, run without --warn-mode")
+            return
+        else:
+            print("No fixes to propose.")
+            return
+    
+    # ENFORCE MODE: Apply fixes
+    # Git operations
+    print("[4/5] Committing fix and pushing")
+    
+    # Use canonical marker [auditshield] for loop prevention
+    fixed_count = len([p for p in processed if p["fixed"]])
+    commit_message = f"[auditshield] fix: Apply compliance fixes ({fixed_count} violation(s))"
+    
+    if args.push_to_existing:
+        # Phase 2: Push to existing PR branch
+        pushed = commit_and_push_to_existing_branch(
+            repo_path,
+            args.push_to_existing,
+            commit_message,
         )
-        run(["git", "push", "-u", "origin", branch_name], cwd=repo_path)
+        if not pushed:
+            print("No changes to commit.")
+            return
+        print(f"Pushed fix to existing branch: {args.push_to_existing}")
     else:
-        print("No changes to commit.")
-
-
-    print("[5/5] Opening PR (or reusing existing)")
-    pr_url = open_or_get_pr(
-        owner=os.getenv("GITHUB_OWNER"),
-        repo=os.getenv("GITHUB_REPO"),
-        head=branch_name,
-        base="main",
-        title="AutoPatch: Fix SQL injection (parameterized query)",
-        body=(
-            "This PR was generated automatically.\n\n"
-            "## What was found\n"
-            "- Possible SQL injection via string formatting.\n\n"
-            "## What changed\n"
-            "- Replaced formatted SQL with a parameterized query.\n"
-            "- Updated execute call to pass parameters safely.\n\n"
-            "## Safety\n"
-            "- Minimal diff\n"
-            "- No refactors\n"
-        ),
-    )
-
-    print("Done.")
-    print("PR:", pr_url)
+        # Phase 1: Create new branch
+        branch_name = generate_branch_name("autopatcher/fix-sqli")
+        pushed = commit_and_push_new_branch(repo_path, branch_name, commit_message)
+        if not pushed:
+            print("No changes to commit.")
+            return
+        
+        if not args.no_pr:
+            print("[5/5] Opening Pull Request (or reusing existing)")
+            pr_url = open_or_get_pr(
+                owner=os.getenv("GITHUB_OWNER"),
+                repo=os.getenv("GITHUB_REPO"),
+                head=branch_name,
+                base="main",
+                title="AutoPatch: Fix SQL injection (parameterized query)",
+                body=(
+                    "This PR was generated automatically.\n\n"
+                    "## What was found\n"
+                    "- Possible SQL injection via string formatting.\n\n"
+                    "## What changed\n"
+                    "- Replaced formatted SQL with a parameterized query.\n"
+                    "- Updated execute call to pass parameters safely.\n\n"
+                    "## Safety\n"
+                    "- Minimal diff\n"
+                    "- No refactors\n"
+                ),
+            )
+            print("Done.")
+            print("PR:", pr_url)
+        else:
+            print(f"Done. Branch: {branch_name}")
 
 
 if __name__ == "__main__":

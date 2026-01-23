@@ -1,0 +1,29 @@
+# Example GitHub Actions workflow for AuditShield
+# Copy this to your repository's .github/workflows/auditshield.yml
+
+name: AuditShield
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  auditshield:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required to commit fixes
+      pull-requests: write  # Required to set status checks
+      statuses: write  # Required to set status checks
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for diff
+    
+      - name: Run AuditShield
+        uses: your-org/auditshield@main  # Replace with your repo
+        with:
+          mode: warn  # or "enforce" to auto-apply fixes
+          base_branch: main
+          # github_token: ${{ secrets.GITHUB_TOKEN }}  # Optional, uses default if not provided

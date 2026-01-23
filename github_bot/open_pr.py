@@ -6,6 +6,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+def get_github_repo(owner: str, repo: str):
+    """Get GitHub repository object."""
+    token = os.getenv("GITHUB_TOKEN")
+    if not token:
+        raise RuntimeError("GITHUB_TOKEN not found in .env")
+    
+    g = Github(auth=Auth.Token(token))
+    return g.get_repo(f"{owner}/{repo}")
+
 def open_or_get_pr(
     owner: str | None,
     repo: str | None,
