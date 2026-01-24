@@ -2,9 +2,27 @@
 .venv/
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
 
 # Environment variables
 .env
 
 # Generated files
 semgrep_results.json
+.coverage
+htmlcov/
+.pytest_cache/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Demo repo (separate repository)
+autopatcher-demo-python/
