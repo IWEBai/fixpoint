@@ -1,25 +1,23 @@
 name: "AuditShield"
-description: "Detects compliance-grade security issues, applies deterministic fixes, and sets status checks"
+description: "Auto-fix security vulnerabilities in PRs. Detects SQL injection, hardcoded secrets, and XSS. Applies deterministic fixes and sets status checks."
+author: "zariffromlatif"
+
 inputs:
   github_token:
-    description: "GitHub token (use secrets.GITHUB_TOKEN)"
+    description: "GitHub token for API access (use secrets.GITHUB_TOKEN)"
     required: false
   base_branch:
-    description: "Base branch to compare against (default: main)"
+    description: "Base branch to compare against"
     required: false
     default: "main"
   mode:
-    description: "Mode: 'warn' (status check only) or 'enforce' (apply fixes)"
+    description: "Mode: 'warn' (comments only) or 'enforce' (auto-fix commits)"
     required: false
     default: "warn"
+
 runs:
   using: "composite"
   steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Fetch full history for diff
-    
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
@@ -28,12 +26,11 @@ runs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install -r ${{ github.action_path }}/requirements.txt
       shell: bash
     
     - name: Install Semgrep
-      run: |
-        pip install semgrep
+      run: pip install semgrep
       shell: bash
     
     - name: Run AuditShield
@@ -41,9 +38,10 @@ runs:
         GITHUB_TOKEN: ${{ inputs.github_token || github.token }}
         INPUT_MODE: ${{ inputs.mode }}
         INPUT_BASE_BRANCH: ${{ inputs.base_branch }}
-      run: |
-        python entrypoint.py
+        AUDITSHIELD_ACTION_PATH: ${{ github.action_path }}
+      run: python ${{ github.action_path }}/entrypoint.py
       shell: bash
+
 branding:
   icon: "shield"
   color: "blue"

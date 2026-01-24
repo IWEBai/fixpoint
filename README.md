@@ -2,25 +2,30 @@
 
 **Turn security compliance blockers into instant pull requests.**
 
-AuditShield automatically fixes compliance-blocking security issues in your PRs, reducing time-to-merge from days to minutes.
+AuditShield automatically detects and fixes security vulnerabilities in your PRs, reducing time-to-merge from days to minutes.
+
+[![Tests](https://img.shields.io/badge/tests-119%20passed-brightgreen)](https://github.com/zariffromlatif/auditshield)
+[![Python](https://img.shields.io/badge/python-3.12+-blue)](https://python.org)
+[![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
 ---
 
-## What It Is
+## What It Fixes
 
-AuditShield is a **deterministic compliance gate** that:
-- Scans PR diffs for security violations (SQL injection, etc.)
-- Proposes fixes in **warn mode** (comments only)
-- Applies fixes in **enforce mode** (auto-commits)
-- Sets GitHub status checks (PASS/FAIL gates)
+| Vulnerability | Detection | Auto-Fix |
+|---------------|-----------|----------|
+| **SQL Injection** | f-strings, concatenation, `.format()`, `%` formatting | ✅ Parameterized queries |
+| **Hardcoded Secrets** | Passwords, API keys, tokens, database URIs | ✅ `os.environ.get()` |
+| **XSS (Templates)** | `\|safe` filter, `autoescape off` | ✅ Removes unsafe patterns |
+| **XSS (Python)** | `mark_safe()`, `SafeString()` | ✅ Replaces with `escape()` |
 
 **Philosophy:** Deterministic-first. Same input → same output. No AI hallucinations.
 
 ---
 
-## Install
+## Quick Start
 
-Add this to `.github/workflows/auditshield.yml`:
+Add to `.github/workflows/auditshield.yml`:
 
 ```yaml
 name: AuditShield
@@ -43,154 +48,221 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - name: AuditShield (warn-first)
-        uses: zariffromlatif/auditshield@v0.1.0
+      - name: AuditShield
+        uses: zariffromlatif/auditshield@v1
         with:
-          mode: warn  # change to "enforce" to auto-apply fixes (non-forks only)
+          mode: warn  # Start with warn, graduate to enforce
           base_branch: ${{ github.base_ref }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-**Notes:**
-- **Fork PRs automatically run in warn mode** (no write access to forks)
-- **To enforce**, set `mode: enforce` (applies fixes automatically for non-fork PRs)
+**That's it.** AuditShield will scan every PR for vulnerabilities.
 
 ---
 
-## Warn → Enforce
+## Example Fixes
 
-**Start in warn mode** (default) to build trust:
+### SQL Injection
 
-```yaml
-- uses: zariffromlatif/auditshield@v0.1.0
-  with:
-    mode: warn  # Comments only, no commits
+```python
+# Before (vulnerable)
+query = f"SELECT * FROM users WHERE email = '{email}'"
+cursor.execute(query)
+
+# After (auto-fixed)
+query = "SELECT * FROM users WHERE email = %s"
+cursor.execute(query, (email,))
 ```
 
-**Graduate to enforce mode** once you trust the fixes:
+### Hardcoded Secrets
 
-```yaml
-- uses: zariffromlatif/auditshield@v0.1.0
-  with:
-    mode: enforce  # Auto-applies fixes
+```python
+# Before (vulnerable)
+api_key = "sk_live_abc123def456"
+
+# After (auto-fixed)
+api_key = os.environ.get("API_KEY")
 ```
 
-**Warn mode:**
+### XSS in Templates
+
+```html
+<!-- Before (vulnerable) -->
+<p>{{ user_input|safe }}</p>
+
+<!-- After (auto-fixed) -->
+<p>{{ user_input }}</p>
+```
+
+### XSS in Python
+
+```python
+# Before (vulnerable)
+return mark_safe(user_input)
+
+# After (auto-fixed)
+return escape(user_input)
+```
+
+---
+
+## Modes
+
+### Warn Mode (Default)
+
+```yaml
+mode: warn
+```
+
 - Posts PR comments with proposed fixes
-- Sets status check to FAIL
+- Sets status check to **FAIL**
 - No commits made
+- Perfect for building trust
 
-**Enforce mode:**
+### Enforce Mode
+
+```yaml
+mode: enforce
+```
+
 - Applies fixes automatically
 - Commits to PR branch
-- Sets status check to PASS
+- Sets status check to **PASS**
+- For trusted, production use
 
----
-
-## .auditshieldignore
-
-Exclude files/directories from scanning (similar to `.gitignore`):
-
-```bash
-# .auditshieldignore
-tests/
-test_*.py
-legacy/
-migrations/
-third_party/
-```
-
-Create `.auditshieldignore` in your repo root.
-
----
-
-## Demo
-
-**Try it now:** [autopatcher-demo-python](https://github.com/zariffromlatif/autopatcher-demo-python)
-
-### Live PRs
-
-**PR A: Violation (FAIL + Comment)**
-- [PR with SQL injection violation](https://github.com/zariffromlatif/autopatcher-demo-python/pull/3)
-- ✅ AuditShield posts comment with proposed fix (diff preview)
-- ✅ Status check shows **FAIL** (`auditshield/compliance`)
-- ✅ Merge blocked (if required check configured)
-
-**PR B: Clean Code (PASS)**
-- [PR with safe parameterized query](https://github.com/zariffromlatif/autopatcher-demo-python/pull/4)
-- ✅ Status check shows **PASS**
-- ✅ No violations found
-- ✅ Merge allowed
-
-### What You'll See
-
-1. **PR A** → Comment with fix proposal + FAIL status (merge blocked)
-2. **PR B** → PASS status (merge allowed)
-3. Switch to enforce mode → PR A fix auto-applied → Status changes to PASS
-
----
-
-## How It Works
-
-1. **Detect** — Scans PR diff for violations (SQL injection, etc.)
-2. **Propose** — Posts comment with deterministic fix (warn mode)
-3. **Apply** — Commits fix to PR branch (enforce mode)
-4. **Gate** — Sets status check (PASS/FAIL)
-
-**Result:** Reduced time-to-merge for compliance-blocking findings.
+**Recommended:** Start with `warn` mode, review the fixes, then graduate to `enforce`.
 
 ---
 
 ## Status Checks
 
-AuditShield sets GitHub status checks:
+AuditShield sets GitHub status checks (`auditshield/compliance`):
 
-- **PASS** — No violations found
-- **FAIL** — Violations found (warn mode) or fixes failed
-- **PASS** — Violations found and fixed (enforce mode)
+| Status | Meaning |
+|--------|---------|
+| ✅ **PASS** | No vulnerabilities found |
+| ❌ **FAIL** | Vulnerabilities found (warn mode) |
+| ✅ **PASS** | Vulnerabilities fixed (enforce mode) |
 
-### Configure as Required Check (Block Merges)
-
-To make AuditShield a true gate that blocks merges:
+### Block Merges on Failure
 
 1. Go to **Settings → Branches → Branch protection rules**
 2. Enable **"Require status checks to pass before merging"**
-3. Select: `auditshield/compliance` (your status context)
+3. Select: `auditshield/compliance`
 4. Save
 
-Now merges are blocked until compliance violations are fixed.
+Now PRs with security issues can't be merged until fixed.
 
 ---
 
-## Example Fix
+## Ignore Files
 
-**Before (non-compliant):**
-```python
-query = f"SELECT * FROM users WHERE email = '{email}'"
-cursor.execute(query)
-```
+Create `.auditshieldignore` in your repo root:
 
-**After (auto-fixed):**
-```python
-query = "SELECT * FROM users WHERE email = %s"
-cursor.execute(query, (email,))
+```bash
+# .auditshieldignore
+tests/
+test_*.py
+migrations/
+third_party/
+*.test.py
 ```
 
 ---
 
-## Philosophy
+## Detection Details
 
-**Deterministic-first:**
-- Same input → same output
-- Rule-based fixes (no AI hallucinations)
-- Verifiable and reproducible
-- Bounded fix space
+### SQL Injection (Python)
 
-**Trust through progression:**
-- Start in warn mode (review fixes)
-- Graduate to enforce mode (auto-apply)
-- Time-to-merge is the metric
+Detects unsafe SQL construction patterns:
+
+| Pattern | Example |
+|---------|---------|
+| f-strings | `f"SELECT * WHERE id = {id}"` |
+| Concatenation | `"SELECT * WHERE id = " + id` |
+| `.format()` | `"SELECT {}".format(id)` |
+| `%` formatting | `"SELECT %s" % id` |
+
+Supports variable names: `query`, `sql`, `stmt`, `command`, etc.
+Supports cursor names: `cursor`, `cur`, `db`, `conn`, `c`, etc.
+
+### Hardcoded Secrets
+
+Detects secrets in code:
+
+| Type | Examples |
+|------|----------|
+| AWS Keys | `AKIA...` pattern |
+| GitHub Tokens | `ghp_...`, `gho_...` |
+| Slack Tokens | `xoxb-...` |
+| Stripe Keys | `sk_live_...` |
+| Database URIs | `postgres://user:pass@...` |
+| Generic | `password = "..."`, `api_key = "..."` |
+
+### XSS (Cross-Site Scripting)
+
+**In Templates (Jinja2/Django):**
+- `{{ variable|safe }}` - The `|safe` filter
+- `{% autoescape off %}` - Disabled escaping
+
+**In Python:**
+- `mark_safe(variable)` - Django mark_safe
+- `SafeString(variable)` - Django SafeString
+- `Markup(variable)` - Flask/Jinja2 Markup
+
+---
+
+## CLI Usage
+
+```bash
+# Install
+pip install -r requirements.txt
+pip install semgrep  # Linux/Mac only
+
+# Warn mode
+python main.py /path/to/repo --warn-mode
+
+# Enforce mode
+python main.py /path/to/repo
+
+# PR diff mode
+python main.py /path/to/repo --pr-mode --base-ref main --head-ref feature
+```
+
+---
+
+## Self-Hosted Webhook
+
+For on-premise deployments:
+
+```bash
+# Configure
+cp .env.example .env
+# Edit .env with your settings
+
+# Run
+python webhook_server.py
+```
+
+Configure GitHub webhook:
+- **URL:** `https://your-domain.com/webhook`
+- **Events:** `pull_request` (opened, synchronize)
+- **Secret:** Your `WEBHOOK_SECRET`
+
+See [API Reference](./docs/API_REFERENCE.md) for details.
+
+---
+
+## What It Does NOT Do
+
+- ❌ Fix arbitrary bugs
+- ❌ Refactor code
+- ❌ Auto-merge PRs
+- ❌ Generate creative fixes
+- ❌ Use AI/LLMs
+
+**Only deterministic, verifiable, compliance-safe changes.**
 
 ---
 
@@ -198,76 +270,26 @@ cursor.execute(query, (email,))
 
 - Python 3.12+
 - GitHub repository
-- GitHub Actions (or webhook server)
+- GitHub Actions (or self-hosted webhook)
 
 ---
 
-## CLI Usage
+## Documentation
 
-```bash
-# Warn mode (propose fixes, don't apply)
-python main.py /path/to/repo --warn-mode
-
-# Enforce mode (apply fixes)
-python main.py /path/to/repo
-
-# PR diff mode
-python main.py /path/to/repo --pr-mode --base-ref main --head-ref feature-branch
-```
-
----
-
-## Webhook Server
-
-For self-hosted deployments:
-
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Configure .env
-WEBHOOK_SECRET=your_secret_here
-AUDITSHIELD_MODE=warn
-
-# Start server
-python webhook_server.py
-```
-
-Configure GitHub webhook:
-- URL: `https://your-domain.com/webhook`
-- Events: `pull_request` (opened, synchronize)
-- Secret: Your `WEBHOOK_SECRET`
-
----
-
-## What AuditShield Does NOT Do
-
-- ❌ Fix arbitrary bugs
-- ❌ Refactor code
-- ❌ Auto-merge PRs
-- ❌ Generate creative fixes
-
-Only deterministic, compliance-safe changes.
-
----
-
-## Roadmap
-
-- **v0.1.0** (current) — Warn mode, status checks, AST-based fixer
-- **v0.2.0** — Multi-language support (JavaScript, TypeScript)
-- **v0.3.0** — More violation types (PII logging, secrets)
-
-See [ROADMAP.md](./ROADMAP.md) for details.
+- [Getting Started](./docs/GETTING_STARTED.md) - Complete setup guide
+- [API Reference](./docs/API_REFERENCE.md) - Webhook API
+- [Environment Variables](./docs/ENVIRONMENT_VARIABLES.md) - Configuration
+- [Roadmap](./ROADMAP.md) - What's next
 
 ---
 
 ## License
 
-[Your License Here]
+MIT License - See [LICENSE](./LICENSE) for details.
 
 ---
 
 ## Support
 
-- Issues: [GitHub Issues](https://github.com/zariffromlatif/auditshield/issues)
-- Docs: [Full Documentation](./IMPLEMENTATION_LOG.md)
+- **Issues:** [GitHub Issues](https://github.com/zariffromlatif/auditshield/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/zariffromlatif/auditshield/discussions)

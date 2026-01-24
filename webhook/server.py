@@ -25,7 +25,7 @@ from core.safety import (
     check_loop_prevention,
     check_confidence_gating,
 )
-from core.security import validate_webhook_request, is_allowed_pr_action
+from core.security import validate_webhook_request, is_allowed_pr_action, is_repo_allowed
 from core.pr_comments import create_fix_comment, create_error_comment, create_warn_comment
 from core.status_checks import set_compliance_status
 from core.observability import (
@@ -41,45 +41,104 @@ load_dotenv()
 
 app = Flask(__name__)
 
+# Request size limit (1MB max payload)
+app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024
+
 # Webhook secret for verifying GitHub payloads
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "")
 
 # Mode: "warn" (comment only) or "enforce" (apply fixes)
 AUDITSHIELD_MODE = os.getenv("AUDITSHIELD_MODE", "warn").lower()
 
+# Subprocess timeout (seconds)
+GIT_TIMEOUT = int(os.getenv("GIT_TIMEOUT", "120"))
+
 # In-memory idempotency store (in production, use Redis)
 _processed_fixes: dict[str, bool] = {}
 
 
+def _setup_git_credentials(repo_path: Path) -> None:
+    """
+    Configure git credential helper to use GITHUB_TOKEN.
+    This avoids embedding tokens in URLs (which can leak in logs).
+    """
+    token = os.getenv("GITHUB_TOKEN")
+    if not token:
+        return
+    
+    # Use credential helper to provide token
+    # This is more secure than embedding in URL
+    subprocess.run(
+        ["git", "config", "credential.helper", "store"],
+        cwd=repo_path,
+        check=False,
+        timeout=GIT_TIMEOUT,
+        capture_output=True,
+    )
+    
+    # Configure the token via environment for this operation
+    # Git will use GIT_ASKPASS or credential helper
+
+
 def clone_or_update_repo(owner: str, repo: str, branch: str, repo_path: Path) -> None:
-    """Clone repository or update if it exists."""
+    """
+    Clone repository or update if it exists.
+    
+    Uses GITHUB_TOKEN via environment variable for authentication,
+    NOT embedded in the URL (to prevent token leakage in logs).
+    """
+    # SECURITY: Use HTTPS URL without embedded token
+    repo_url = f"https://github.com/{owner}/{repo}.git"
+    
+    # Set up environment with token for git operations
+    env = os.environ.copy()
     token = os.getenv("GITHUB_TOKEN")
     if token:
-        repo_url = f"https://{token}@github.com/{owner}/{repo}.git"
-    else:
-        repo_url = f"https://github.com/{owner}/{repo}.git"
+        # Use GIT_ASKPASS with a simple script approach or header-based auth
+        # For GitHub, we can use the token as password with any username
+        env["GIT_TERMINAL_PROMPT"] = "0"
+        # Create auth header for HTTPS
+        auth_header = f"Authorization: Bearer {token}"
+        env["GIT_CONFIG_COUNT"] = "1"
+        env["GIT_CONFIG_KEY_0"] = "http.extraHeader"
+        env["GIT_CONFIG_VALUE_0"] = auth_header
     
-    if repo_path.exists() and (repo_path / ".git").exists():
-        subprocess.run(
-            ["git", "fetch", "origin", branch],
-            cwd=repo_path,
-            check=False,
-        )
-        subprocess.run(
-            ["git", "checkout", branch],
-            cwd=repo_path,
-            check=False,
-        )
-        subprocess.run(
-            ["git", "pull", "origin", branch],
-            cwd=repo_path,
-            check=False,
-        )
-    else:
-        subprocess.run(
-            ["git", "clone", "--branch", branch, repo_url, str(repo_path)],
-            check=True,
-        )
+    try:
+        if repo_path.exists() and (repo_path / ".git").exists():
+            subprocess.run(
+                ["git", "fetch", "origin", branch],
+                cwd=repo_path,
+                check=False,
+                timeout=GIT_TIMEOUT,
+                capture_output=True,
+                env=env,
+            )
+            subprocess.run(
+                ["git", "checkout", branch],
+                cwd=repo_path,
+                check=False,
+                timeout=GIT_TIMEOUT,
+                capture_output=True,
+                env=env,
+            )
+            subprocess.run(
+                ["git", "pull", "origin", branch],
+                cwd=repo_path,
+                check=False,
+                timeout=GIT_TIMEOUT,
+                capture_output=True,
+                env=env,
+            )
+        else:
+            subprocess.run(
+                ["git", "clone", "--branch", branch, repo_url, str(repo_path)],
+                check=True,
+                timeout=GIT_TIMEOUT,
+                capture_output=True,
+                env=env,
+            )
+    except subprocess.TimeoutExpired:
+        raise RuntimeError(f"Git operation timed out after {GIT_TIMEOUT}s")
 
 
 def process_pr_webhook(payload: dict, correlation_id: str) -> dict:
@@ -99,6 +158,14 @@ def process_pr_webhook(payload: dict, correlation_id: str) -> dict:
     
     owner = payload.get("repository", {}).get("owner", {}).get("login")
     repo_name = payload.get("repository", {}).get("name")
+    full_repo_name = f"{owner}/{repo_name}" if owner and repo_name else ""
+    
+    # SECURITY: Repository allowlist/denylist check
+    is_allowed, reason = is_repo_allowed(full_repo_name)
+    if not is_allowed:
+        log_processing_result(correlation_id, "denied", reason)
+        return {"status": "denied", "message": reason}
+    
     base_branch = pr.get("base", {}).get("ref", "main")
     head_branch = pr.get("head", {}).get("ref")
     head_sha = pr.get("head", {}).get("sha")

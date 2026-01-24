@@ -1,4 +1,14 @@
-semgrep>=1.0.0
-python-dotenv>=1.0.0
-PyGithub>=2.0.0
-Flask>=3.0.0
+# Core dependencies - pinned for reproducibility
+# Note: semgrep must be installed separately on Linux/Mac/WSL (not supported on Windows)
+# pip install semgrep  # or: pip install semgrep==1.102.0
+python-dotenv==1.0.1
+PyGithub==2.5.0
+Flask==3.1.0
+
+# Testing dependencies
+pytest==8.3.4
+pytest-cov==6.0.0
+pytest-mock==3.14.0
+
+# Production dependencies (optional, for scaling)
+# redis==5.2.1  # Uncomment for distributed rate limiting/caching

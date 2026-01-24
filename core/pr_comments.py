@@ -5,11 +5,100 @@ Creates clear, actionable comments explaining fixes.
 from __future__ import annotations
 
 import os
+import re
 from typing import Optional
 from github import Github, Auth
 from dotenv import load_dotenv
 
 load_dotenv()
+
+
+def _sanitize_for_markdown(text: str, max_length: int = 500) -> str:
+    """
+    Sanitize text for safe inclusion in GitHub markdown comments.
+    
+    Prevents:
+    - Markdown injection (escaped special chars)
+    - Excessive length (truncated)
+    - HTML injection (stripped)
+    
+    Args:
+        text: Raw text to sanitize
+        max_length: Maximum allowed length
+    
+    Returns:
+        Sanitized text safe for markdown
+    """
+    if not text:
+        return ""
+    
+    # Convert to string if needed
+    text = str(text)
+    
+    # Strip HTML tags
+    text = re.sub(r'<[^>]+>', '', text)
+    
+    # Escape markdown special characters
+    # Characters that have special meaning in markdown
+    special_chars = ['\\', '`', '*', '_', '{', '}', '[', ']', '(', ')', '#', '+', '-', '.', '!', '|']
+    for char in special_chars:
+        text = text.replace(char, f'\\{char}')
+    
+    # Truncate if too long
+    if len(text) > max_length:
+        text = text[:max_length - 3] + "..."
+    
+    return text
+
+
+def _sanitize_file_path(path: str) -> str:
+    """
+    Sanitize file path for display in comments.
+    
+    Args:
+        path: File path to sanitize
+    
+    Returns:
+        Sanitized path
+    """
+    if not path:
+        return ""
+    
+    # Remove any path traversal attempts
+    path = path.replace("..", "")
+    
+    # Remove null bytes
+    path = path.replace("\x00", "")
+    
+    # Limit length
+    if len(path) > 200:
+        path = "..." + path[-197:]
+    
+    return path
+
+
+def _sanitize_code_block(code: str, max_length: int = 1000) -> str:
+    """
+    Sanitize code for display in markdown code blocks.
+    
+    Args:
+        code: Code to sanitize
+        max_length: Maximum allowed length
+    
+    Returns:
+        Sanitized code
+    """
+    if not code:
+        return ""
+    
+    # Remove backticks that could break out of code block
+    code = code.replace("```", "'''")
+    
+    # Truncate if too long
+    if len(code) > max_length:
+        code = code[:max_length - 20] + "\n... (truncated)"
+    
+    return code
 
 
 def create_fix_comment(
@@ -47,10 +136,10 @@ def create_fix_comment(
         
         comment_body += "### What was found\n\n"
         for finding in findings:
-            file_path = finding.get("path", "")
-            start_line = finding.get("start", {}).get("line", 0)
-            message = finding.get("extra", {}).get("message", "Security violation")
-            check_id = finding.get("check_id", "")
+            file_path = _sanitize_file_path(finding.get("path", ""))
+            start_line = int(finding.get("start", {}).get("line", 0))
+            message = _sanitize_for_markdown(finding.get("extra", {}).get("message", "Security violation"))
+            check_id = _sanitize_for_markdown(finding.get("check_id", ""), max_length=100)
             
             comment_body += f"- **{file_path}:{start_line}** - {message}\n"
             comment_body += f"  - Rule: `{check_id}`\n"
@@ -58,7 +147,8 @@ def create_fix_comment(
         comment_body += "\n### What changed\n\n"
         comment_body += "Applied deterministic fixes:\n\n"
         for file_path in files_fixed:
-            comment_body += f"- ✅ `{file_path}` - Replaced SQL string formatting with parameterized query\n"
+            safe_path = _sanitize_file_path(file_path)
+            comment_body += f"- ✅ `{safe_path}` - Replaced SQL string formatting with parameterized query\n"
         
         comment_body += "\n### Safety\n\n"
         comment_body += "- ✅ Minimal diff (only security fixes)\n"
@@ -137,20 +227,20 @@ def create_warn_comment(
         
         comment_body += "### What was found\n\n"
         for finding in findings:
-            file_path = finding.get("path", "")
-            start_line = finding.get("start", {}).get("line", 0)
-            message = finding.get("extra", {}).get("message", "Security violation")
-            check_id = finding.get("check_id", "")
+            file_path = _sanitize_file_path(finding.get("path", ""))
+            start_line = int(finding.get("start", {}).get("line", 0))
+            message = _sanitize_for_markdown(finding.get("extra", {}).get("message", "Security violation"))
+            check_id = _sanitize_for_markdown(finding.get("check_id", ""), max_length=100)
             
             comment_body += f"- **{file_path}:{start_line}** - {message}\n"
             comment_body += f"  - Rule: `{check_id}`\n"
         
         comment_body += "\n### Proposed fixes\n\n"
         for fix in proposed_fixes:
-            file_path = fix.get("file", "")
-            line = fix.get("line", 0)
-            before = fix.get("before", "").strip()
-            after = fix.get("after", "").strip()
+            file_path = _sanitize_file_path(fix.get("file", ""))
+            line = int(fix.get("line", 0))
+            before = _sanitize_code_block(fix.get("before", "").strip())
+            after = _sanitize_code_block(fix.get("after", "").strip())
             
             comment_body += f"**{file_path}:{line}**\n\n"
             comment_body += "```diff\n"
@@ -216,6 +306,10 @@ def create_error_comment(
         r = g.get_repo(f"{owner}/{repo}")
         pr = r.get_pull(pr_number)
         
+        # Sanitize inputs
+        safe_message = _sanitize_for_markdown(message)
+        safe_error_type = _sanitize_for_markdown(error_type, max_length=50)
+        
         comment_body = "## ⚠️ AuditShield - Action Required\n\n"
         
         if error_type == "permissions":
@@ -225,9 +319,9 @@ def create_error_comment(
             comment_body += "I found security violations but couldn't push fixes due to branch protection rules.\n\n"
             comment_body += "**Action required:** Please temporarily allow AuditShield to push, or apply the fix manually.\n\n"
         else:
-            comment_body += f"I found security violations but encountered an issue: {message}\n\n"
+            comment_body += f"I found security violations but encountered an issue: {safe_message}\n\n"
         
-        comment_body += f"**Details:** {message}\n\n"
+        comment_body += f"**Details:** {safe_message}\n\n"
         comment_body += "---\n"
         comment_body += "*This message was generated by AuditShield.*"
         

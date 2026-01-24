@@ -1,0 +1,127 @@
+rules:
+  # Django mark_safe with dynamic content
+  - id: python-xss-mark-safe
+    message: "XSS vulnerability: mark_safe() used with dynamic content"
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      confidence: high
+      cwe: "CWE-79"
+      owasp: "A03:2021"
+    patterns:
+      - pattern-either:
+          # mark_safe with variable
+          - pattern: mark_safe($VAR)
+          # mark_safe with f-string
+          - pattern: mark_safe(f"...")
+          # mark_safe with concatenation
+          - pattern: mark_safe("..." + $VAR + "...")
+          - pattern: mark_safe($VAR + "...")
+          # mark_safe with format
+          - pattern: mark_safe("...".format(...))
+      - pattern-not: mark_safe("...")  # Literal strings are OK
+
+  # Django SafeString/SafeText with dynamic content
+  - id: python-xss-safestring
+    message: "XSS vulnerability: SafeString/SafeText used with dynamic content"
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      confidence: high
+      cwe: "CWE-79"
+      owasp: "A03:2021"
+    patterns:
+      - pattern-either:
+          - pattern: SafeString($VAR)
+          - pattern: SafeText($VAR)
+          - pattern: SafeString(f"...")
+          - pattern: SafeText(f"...")
+      - pattern-not: SafeString("...")
+      - pattern-not: SafeText("...")
+
+  # format_html with dynamic format string
+  - id: python-xss-format-html
+    message: "XSS risk: format_html() with dynamic format string"
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: security
+      confidence: medium
+      cwe: "CWE-79"
+      owasp: "A03:2021"
+    patterns:
+      - pattern-either:
+          - pattern: format_html($VAR, ...)
+          - pattern: format_html(f"...", ...)
+      - pattern-not: format_html("...", ...)
+
+  # HttpResponse with HTML content and dynamic data
+  - id: python-xss-httpresponse
+    message: "XSS risk: HttpResponse with dynamic HTML content"
+    severity: WARNING
+    languages: [python]
+    metadata:
+      category: security
+      confidence: medium
+      cwe: "CWE-79"
+      owasp: "A03:2021"
+    patterns:
+      - pattern-either:
+          - pattern: HttpResponse(f"...", content_type="text/html")
+          - pattern: HttpResponse("..." + $VAR, content_type="text/html")
+          - pattern: HttpResponse($VAR, content_type="text/html")
+
+  # Jinja2/Django template |safe filter
+  - id: template-xss-safe-filter
+    message: "XSS vulnerability: |safe filter disables HTML escaping"
+    severity: ERROR
+    languages: [generic]
+    metadata:
+      category: security
+      confidence: high
+      cwe: "CWE-79"
+      owasp: "A03:2021"
+    paths:
+      include:
+        - "*.html"
+        - "*.jinja"
+        - "*.jinja2"
+        - "*.j2"
+    pattern-regex: '\{\{\s*[^}]+\|\s*safe\s*\}\}'
+
+  # Django autoescape off
+  - id: template-xss-autoescape-off
+    message: "XSS vulnerability: autoescape off disables HTML escaping"
+    severity: ERROR
+    languages: [generic]
+    metadata:
+      category: security
+      confidence: high
+      cwe: "CWE-79"
+      owasp: "A03:2021"
+    paths:
+      include:
+        - "*.html"
+        - "*.jinja"
+        - "*.jinja2"
+        - "*.j2"
+    pattern-regex: '\{%\s*autoescape\s+(off|false)\s*%\}'
+
+  # Flask/Jinja2 Markup with dynamic content
+  - id: python-xss-markup
+    message: "XSS vulnerability: Markup() used with dynamic content"
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      confidence: high
+      cwe: "CWE-79"
+      owasp: "A03:2021"
+    patterns:
+      - pattern-either:
+          - pattern: Markup($VAR)
+          - pattern: Markup(f"...")
+          - pattern: Markup("..." + $VAR)
+      - pattern-not: Markup("...")

@@ -1,4 +1,4 @@
-﻿name: AuditShield
+name: AuditShield
 
 on:
   pull_request:
@@ -18,10 +18,10 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - name: AuditShield (warn-first)
-        uses: zariffromlatif/auditshield@v0.1.0
+      - name: AuditShield
+        uses: zariffromlatif/auditshield@v1
         with:
-          mode: warn
+          mode: warn  # Start with warn, graduate to enforce
           base_branch: ${{ github.base_ref }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

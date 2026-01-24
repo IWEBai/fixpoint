@@ -30,12 +30,13 @@ def verify_webhook_signature(payload_body: bytes, signature: str, secret: str) -
         True if signature is valid, False otherwise
     """
     if not secret:
-        # In production, always require secret
-        if os.getenv("ENVIRONMENT") == "production":
-            return False
-        # In development, allow missing secret with warning
-        print("WARNING: WEBHOOK_SECRET not set - skipping signature verification")
-        return True
+        # SECURITY: Always require webhook secret in all environments
+        # For local testing only, explicitly set SKIP_WEBHOOK_VERIFICATION=true
+        if os.getenv("SKIP_WEBHOOK_VERIFICATION", "").lower() == "true":
+            print("WARNING: SKIP_WEBHOOK_VERIFICATION=true - skipping signature verification (NEVER use in production!)")
+            return True
+        print("ERROR: WEBHOOK_SECRET not set - rejecting request")
+        return False
     
     if not signature:
         return False
@@ -112,6 +113,44 @@ def check_replay_protection(delivery_id: str) -> bool:
     _processed_deliveries.clear()  # Simple: clear all (in production, use proper TTL)
     
     return False  # New delivery, proceed
+
+
+def is_repo_allowed(full_repo_name: str) -> tuple[bool, Optional[str]]:
+    """
+    Check if a repository is allowed to be processed.
+    
+    Uses ALLOWED_REPOS and DENIED_REPOS environment variables.
+    - If ALLOWED_REPOS is set, only those repos are allowed (allowlist mode)
+    - If DENIED_REPOS is set, those repos are blocked (denylist mode)
+    - If neither is set, all repos are allowed
+    
+    Args:
+        full_repo_name: Repository in "owner/repo" format
+    
+    Returns:
+        Tuple of (is_allowed, reason)
+    """
+    if not full_repo_name:
+        return False, "Repository name is empty"
+    
+    # Normalize to lowercase for comparison
+    full_repo_name = full_repo_name.lower().strip()
+    
+    # Check denylist first (always takes precedence)
+    denied_repos = os.getenv("DENIED_REPOS", "").strip()
+    if denied_repos:
+        denied_list = [r.lower().strip() for r in denied_repos.split(",") if r.strip()]
+        if full_repo_name in denied_list:
+            return False, f"Repository '{full_repo_name}' is in the deny list"
+    
+    # Check allowlist (if configured, only allow listed repos)
+    allowed_repos = os.getenv("ALLOWED_REPOS", "").strip()
+    if allowed_repos:
+        allowed_list = [r.lower().strip() for r in allowed_repos.split(",") if r.strip()]
+        if full_repo_name not in allowed_list:
+            return False, f"Repository '{full_repo_name}' is not in the allow list"
+    
+    return True, None
 
 
 def validate_webhook_request(

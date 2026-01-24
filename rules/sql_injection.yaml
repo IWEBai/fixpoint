@@ -1,19 +1,105 @@
 rules:
+  # F-string SQL injection
   - id: python-sql-injection-fstring
-    message: Possible SQL injection via string formatting.
+    message: SQL injection via f-string formatting
     severity: ERROR
     languages: [python]
     metadata:
       category: security
       confidence: high
+      cwe: "CWE-89"
+      owasp: "A03:2021"
     patterns:
       - pattern-either:
-          # Case 1: f-string directly in execute
-          - pattern: |
-              $CURSOR.execute(f"...")
-
-          # Case 2: formatted string assigned then executed
+          # Direct f-string in execute
+          - pattern: $CURSOR.execute(f"...")
+          - pattern: $CURSOR.executemany(f"...")
+          
+          # F-string assigned then executed
           - pattern: |
               $QUERY = f"..."
+              ...
+              $CURSOR.execute($QUERY)
+          - pattern: |
+              $QUERY = f"..."
+              ...
+              $CURSOR.executemany($QUERY)
+
+  # String concatenation SQL injection
+  - id: python-sql-injection-concat
+    message: SQL injection via string concatenation
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      confidence: high
+      cwe: "CWE-89"
+      owasp: "A03:2021"
+    patterns:
+      - pattern-either:
+          # Direct concatenation in execute
+          - pattern: $CURSOR.execute("..." + $VAR + "...")
+          - pattern: $CURSOR.execute("..." + $VAR)
+          - pattern: $CURSOR.execute($VAR + "...")
+          
+          # Concatenation assigned then executed
+          - pattern: |
+              $QUERY = "..." + $VAR + "..."
+              ...
+              $CURSOR.execute($QUERY)
+          - pattern: |
+              $QUERY = "..." + $VAR
+              ...
+              $CURSOR.execute($QUERY)
+
+  # .format() SQL injection
+  - id: python-sql-injection-format
+    message: SQL injection via .format() method
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      confidence: high
+      cwe: "CWE-89"
+      owasp: "A03:2021"
+    patterns:
+      - pattern-either:
+          # Direct .format() in execute
+          - pattern: $CURSOR.execute("...".format(...))
+          - pattern: $CURSOR.execute("...{}...".format(...))
+          
+          # .format() assigned then executed
+          - pattern: |
+              $QUERY = "...".format(...)
+              ...
+              $CURSOR.execute($QUERY)
+          - pattern: |
+              $QUERY = "...{}...".format(...)
+              ...
+              $CURSOR.execute($QUERY)
+
+  # % formatting SQL injection
+  - id: python-sql-injection-percent
+    message: SQL injection via % string formatting
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      confidence: high
+      cwe: "CWE-89"
+      owasp: "A03:2021"
+    patterns:
+      - pattern-either:
+          # Direct % formatting in execute
+          - pattern: $CURSOR.execute("..." % $VAR)
+          - pattern: $CURSOR.execute("..." % (...))
+          
+          # % formatting assigned then executed
+          - pattern: |
+              $QUERY = "..." % $VAR
+              ...
+              $CURSOR.execute($QUERY)
+          - pattern: |
+              $QUERY = "..." % (...)
               ...
               $CURSOR.execute($QUERY)
