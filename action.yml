@@ -1,5 +1,5 @@
-name: "AuditShield"
-description: "Auto-fix security vulnerabilities in PRs. Detects SQL injection, hardcoded secrets, and XSS. Applies deterministic fixes and sets status checks."
+name: "AuditShield Auto-Patcher"
+description: "Auto-fix SQL injection, hardcoded secrets, and XSS in PRs. Deterministic fixes with status checks."
 author: "zariffromlatif"
 
 inputs:
