@@ -7,6 +7,9 @@ Fixpoint automatically detects and fixes security vulnerabilities in your pull r
 [![Tests](https://img.shields.io/badge/tests-119%20passed-brightgreen)](https://github.com/IWEBai/fixpoint)
 [![Python](https://img.shields.io/badge/python-3.12+-blue)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
+[![Marketplace](https://img.shields.io/badge/GitHub-Marketplace-blue)](https://github.com/marketplace/actions/fixpoint-auto-fix-security-vulnerabilities)
+
+> **Try it now!** Fork the [demo repository](https://github.com/IWEBai/fixpoint-demo) to see Fixpoint in action.
 
 ---
 
@@ -276,6 +279,7 @@ See [API Reference](./docs/API_REFERENCE.md) for details.
 
 ## Documentation
 
+- [Demo Repository](https://github.com/IWEBai/fixpoint-demo) - Try Fixpoint with vulnerable code examples
 - [Introduction](./docs/INTRODUCTION.md) - Why Fixpoint?
 - [Getting Started](./docs/GETTING_STARTED.md) - Complete setup guide
 - [API Reference](./docs/API_REFERENCE.md) - Webhook API
