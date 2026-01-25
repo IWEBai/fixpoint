@@ -1,5 +1,5 @@
 name: "Fixpoint - Auto-Fix Security Vulnerabilities"
-description: "Automatically detect and fix SQL injection, hardcoded secrets, and XSS vulnerabilities in your pull requests. Deterministic fixes with no AI hallucinations."
+description: "Auto-fix SQL injection, hardcoded secrets, and XSS in your PRs. Deterministic fixes, no AI."
 author: "IWEB"
 
 inputs:
