@@ -1,4 +1,4 @@
-name: AuditShield
+name: Fixpoint
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ permissions:
   statuses: write
 
 jobs:
-  auditshield:
+  fixpoint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -18,8 +18,8 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - name: AuditShield
-        uses: zariffromlatif/auditshield@v1
+      - name: Fixpoint
+        uses: AyeWebDev/fixpoint@v1
         with:
           mode: warn  # Start with warn, graduate to enforce
           base_branch: ${{ github.base_ref }}

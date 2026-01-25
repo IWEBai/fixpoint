@@ -1,5 +1,5 @@
 """
-.auditshieldignore file support.
+.fixpointignore file support.
 Similar to .gitignore, allows teams to exclude files/directories from scanning.
 """
 from __future__ import annotations
@@ -12,7 +12,7 @@ from typing import List, Set
 
 def read_ignore_file(repo_path: Path) -> List[str]:
     """
-    Read .auditshieldignore file from repo root.
+    Read .fixpointignore file from repo root.
     
     Args:
         repo_path: Repository root path
@@ -20,7 +20,7 @@ def read_ignore_file(repo_path: Path) -> List[str]:
     Returns:
         List of ignore patterns (empty list if file doesn't exist)
     """
-    ignore_file = repo_path / ".auditshieldignore"
+    ignore_file = repo_path / ".fixpointignore"
     
     if not ignore_file.exists():
         return []
@@ -38,7 +38,7 @@ def read_ignore_file(repo_path: Path) -> List[str]:
 
 def should_ignore_file(file_path: str, ignore_patterns: List[str], repo_path: Path) -> bool:
     """
-    Check if a file should be ignored based on .auditshieldignore patterns.
+    Check if a file should be ignored based on .fixpointignore patterns.
     
     Supports:
     - Exact matches: `file.py`
@@ -137,7 +137,7 @@ def filter_ignored_files(
     ignore_patterns: List[str] | None = None,
 ) -> List[str]:
     """
-    Filter out files that match .auditshieldignore patterns.
+    Filter out files that match .fixpointignore patterns.
     
     Args:
         file_paths: List of relative file paths

@@ -1,5 +1,5 @@
 """
-Git operations for AuditShield.
+Git operations for Fixpoint.
 Supports both creating new branches and pushing to existing PR branches.
 """
 from __future__ import annotations
@@ -30,11 +30,11 @@ def run(cmd: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess:
 def setup_git_identity(repo_path: Path) -> None:
     """Ensure git identity exists (required on GitHub Actions runners)."""
     run(
-        ["git", "config", "user.email", "auditshield-bot@users.noreply.github.com"],
+        ["git", "config", "user.email", "fixpoint-bot@users.noreply.github.com"],
         cwd=repo_path,
     )
     run(
-        ["git", "config", "user.name", "auditshield-bot"],
+        ["git", "config", "user.name", "fixpoint-bot"],
         cwd=repo_path,
     )
 

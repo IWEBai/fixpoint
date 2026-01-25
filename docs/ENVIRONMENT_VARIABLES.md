@@ -1,6 +1,6 @@
-# AuditShield Environment Variables Reference
+# Fixpoint Environment Variables Reference
 
-This document lists all environment variables used by AuditShield.
+This document lists all environment variables used by Fixpoint.
 
 ---
 
@@ -49,9 +49,9 @@ WEBHOOK_SECRET=a1b2c3d4e5f6...
 
 ## Mode Configuration
 
-### AUDITSHIELD_MODE
+### FIXPOINT_MODE
 
-Controls whether AuditShield applies fixes or just warns.
+Controls whether Fixpoint applies fixes or just warns.
 
 | Property | Value |
 |----------|-------|
@@ -66,7 +66,7 @@ Controls whether AuditShield applies fixes or just warns.
 
 **Example:**
 ```bash
-AUDITSHIELD_MODE=warn
+FIXPOINT_MODE=warn
 ```
 
 ### ENVIRONMENT
@@ -154,7 +154,7 @@ Comma-separated list of repositories allowed to trigger processing.
 | Format | `owner/repo,owner/repo2` |
 | Used by | Webhook server |
 
-When set, only listed repositories can trigger AuditShield.
+When set, only listed repositories can trigger Fixpoint.
 
 **Example:**
 ```bash
@@ -201,11 +201,11 @@ SKIP_WEBHOOK_VERIFICATION=true  # ONLY for local testing
 
 ## GitHub Action Inputs
 
-When using AuditShield as a GitHub Action, these are set via `with:` in your workflow:
+When using Fixpoint as a GitHub Action, these are set via `with:` in your workflow:
 
 ### INPUT_MODE
 
-Same as `AUDITSHIELD_MODE`.
+Same as `FIXPOINT_MODE`.
 
 | Property | Value |
 |----------|-------|
@@ -214,7 +214,7 @@ Same as `AUDITSHIELD_MODE`.
 
 **Example:**
 ```yaml
-- uses: zariffromlatif/auditshield@v0.1.0
+- uses: AyeWebDev/fixpoint@v1
   with:
     mode: warn
 ```
@@ -229,7 +229,7 @@ Base branch to compare against.
 
 **Example:**
 ```yaml
-- uses: zariffromlatif/auditshield@v0.1.0
+- uses: AyeWebDev/fixpoint@v1
   with:
     base_branch: main
 ```
@@ -282,7 +282,7 @@ Database connection URL for metrics storage.
 
 **Example:**
 ```bash
-DATABASE_URL=postgresql://user:pass@localhost/auditshield
+DATABASE_URL=postgresql://user:pass@localhost/fixpoint
 ```
 
 ---
@@ -315,7 +315,7 @@ ALLOWED_REPOS=myorg/backend,myorg/frontend
 
 ## Validation
 
-AuditShield validates required variables at startup. Missing required variables will cause:
+Fixpoint validates required variables at startup. Missing required variables will cause:
 
 - Webhook server: Requests rejected with 401
 - CLI: Error message and exit

@@ -1,10 +1,10 @@
-# AuditShield — Compliance Auto-Patcher
+# Fixpoint by IWEB
 
-**Turn security compliance blockers into instant pull requests.**
+**Auto-fix security vulnerabilities in your PRs.**
 
-AuditShield automatically detects and fixes security vulnerabilities in your PRs, reducing time-to-merge from days to minutes.
+Fixpoint automatically detects and fixes security vulnerabilities in your pull requests, reducing time-to-merge from days to minutes.
 
-[![Tests](https://img.shields.io/badge/tests-119%20passed-brightgreen)](https://github.com/zariffromlatif/auditshield)
+[![Tests](https://img.shields.io/badge/tests-119%20passed-brightgreen)](https://github.com/AyeWebDev/fixpoint)
 [![Python](https://img.shields.io/badge/python-3.12+-blue)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
@@ -25,10 +25,10 @@ AuditShield automatically detects and fixes security vulnerabilities in your PRs
 
 ## Quick Start
 
-Add to `.github/workflows/auditshield.yml`:
+Add to `.github/workflows/fixpoint.yml`:
 
 ```yaml
-name: AuditShield
+name: Fixpoint
 
 on:
   pull_request:
@@ -40,7 +40,7 @@ permissions:
   statuses: write
 
 jobs:
-  auditshield:
+  fixpoint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -48,8 +48,8 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - name: AuditShield
-        uses: zariffromlatif/auditshield@v1
+      - name: Fixpoint
+        uses: AyeWebDev/fixpoint@v1
         with:
           mode: warn  # Start with warn, graduate to enforce
           base_branch: ${{ github.base_ref }}
@@ -57,7 +57,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-**That's it.** AuditShield will scan every PR for vulnerabilities.
+**That's it.** Fixpoint will scan every PR for vulnerabilities.
 
 ---
 
@@ -137,7 +137,7 @@ mode: enforce
 
 ## Status Checks
 
-AuditShield sets GitHub status checks (`auditshield/compliance`):
+Fixpoint sets GitHub status checks (`fixpoint/compliance`):
 
 | Status | Meaning |
 |--------|---------|
@@ -149,7 +149,7 @@ AuditShield sets GitHub status checks (`auditshield/compliance`):
 
 1. Go to **Settings → Branches → Branch protection rules**
 2. Enable **"Require status checks to pass before merging"**
-3. Select: `auditshield/compliance`
+3. Select: `fixpoint/compliance`
 4. Save
 
 Now PRs with security issues can't be merged until fixed.
@@ -158,10 +158,10 @@ Now PRs with security issues can't be merged until fixed.
 
 ## Ignore Files
 
-Create `.auditshieldignore` in your repo root:
+Create `.fixpointignore` in your repo root:
 
 ```bash
-# .auditshieldignore
+# .fixpointignore
 tests/
 test_*.py
 migrations/
@@ -276,6 +276,7 @@ See [API Reference](./docs/API_REFERENCE.md) for details.
 
 ## Documentation
 
+- [Introduction](./docs/INTRODUCTION.md) - Why Fixpoint?
 - [Getting Started](./docs/GETTING_STARTED.md) - Complete setup guide
 - [API Reference](./docs/API_REFERENCE.md) - Webhook API
 - [Environment Variables](./docs/ENVIRONMENT_VARIABLES.md) - Configuration
@@ -291,5 +292,9 @@ MIT License - See [LICENSE](./LICENSE) for details.
 
 ## Support
 
-- **Issues:** [GitHub Issues](https://github.com/zariffromlatif/auditshield/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/zariffromlatif/auditshield/discussions)
+- **Issues:** [GitHub Issues](https://github.com/AyeWebDev/fixpoint/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/AyeWebDev/fixpoint/discussions)
+
+---
+
+*Fixpoint by IWEB — Because security shouldn't slow you down.*

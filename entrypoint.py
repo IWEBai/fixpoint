@@ -1,5 +1,5 @@
 """
-GitHub Action entry point for AuditShield.
+GitHub Action entry point for Fixpoint.
 Runs in GitHub Actions environment with GITHUB_TOKEN and repository context.
 """
 from __future__ import annotations
@@ -87,7 +87,7 @@ def main():
     
     warn_mode = effective_mode == "warn"
     
-    print(f"::group::AuditShield Scan")
+    print(f"::group::Fixpoint Scan")
     print(f"Repository: {owner}/{repo_name}")
     print(f"Base branch: {base_branch}")
     print(f"Head ref: {head_ref}")
@@ -169,13 +169,13 @@ def main():
         sys.exit(0)
     
     # Commit and push fixes
-    # Use canonical marker [auditshield] for loop prevention
+    # Use canonical marker [fixpoint] for loop prevention
     print("::group::Committing fixes")
     try:
         commit_and_push_to_existing_branch(
             workspace,
             head_ref,
-            f"[auditshield] fix: Apply compliance fixes ({violations_fixed} violation(s))",
+            f"[fixpoint] fix: Apply compliance fixes ({violations_fixed} violation(s))",
         )
         print("::endgroup::")
     except Exception as e:

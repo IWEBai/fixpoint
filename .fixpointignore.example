@@ -1,5 +1,5 @@
-# .auditshieldignore
-# Files and directories to exclude from AuditShield scanning
+# .fixpointignore
+# Files and directories to exclude from Fixpoint scanning
 # Similar to .gitignore syntax
 
 # Ignore test files

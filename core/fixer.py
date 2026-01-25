@@ -1,5 +1,5 @@
 """
-Core fixing engine for AuditShield.
+Core fixing engine for Fixpoint.
 Processes Semgrep findings and applies deterministic fixes.
 
 Supported vulnerability types:

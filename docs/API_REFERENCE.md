@@ -1,6 +1,6 @@
-# AuditShield API Reference
+# Fixpoint API Reference
 
-This document describes the webhook API for self-hosted AuditShield deployments.
+This document describes the webhook API for self-hosted Fixpoint deployments.
 
 ---
 
@@ -90,7 +90,7 @@ GitHub PR webhook payload. See [GitHub Webhook Events](https://docs.github.com/e
 | `no_findings` | No violations found |
 | `no_changes` | No files changed in PR |
 | `no_python` | No Python files changed |
-| `all_ignored` | All changed files ignored by .auditshieldignore |
+| `all_ignored` | All changed files ignored by .fixpointignore |
 | `already_fixed` | All findings already fixed (idempotency) |
 | `skipped` | Skipped to prevent processing loop |
 | `low_confidence` | Findings too low confidence to auto-fix |
@@ -121,7 +121,7 @@ Returns HTTP 200 when service is running.
 
 ## Rate Limiting
 
-AuditShield implements per-PR rate limiting to prevent abuse:
+Fixpoint implements per-PR rate limiting to prevent abuse:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
@@ -144,7 +144,7 @@ All webhook requests must include a valid `X-Hub-Signature-256` header:
 
 1. GitHub computes HMAC-SHA256 of the payload using your webhook secret
 2. GitHub sends the signature as `sha256=<hexdigest>`
-3. AuditShield verifies the signature matches
+3. Fixpoint verifies the signature matches
 
 **Configuration:**
 ```bash
@@ -153,7 +153,7 @@ WEBHOOK_SECRET=your_secret_here
 
 ### Replay Protection
 
-AuditShield tracks delivery IDs to prevent replay attacks:
+Fixpoint tracks delivery IDs to prevent replay attacks:
 - Delivery IDs are stored for 24 hours
 - Duplicate deliveries are rejected with 401
 
@@ -190,13 +190,13 @@ Requests exceeding this limit receive HTTP 413.
 
 ## GitHub Status Checks
 
-AuditShield sets status checks on PRs:
+Fixpoint sets status checks on PRs:
 
 | Context | State | Description |
 |---------|-------|-------------|
-| `auditshield/compliance` | success | No violations or all fixed |
-| `auditshield/compliance` | failure | Violations found (warn mode) |
-| `auditshield/compliance` | error | Processing error |
+| `fixpoint/compliance` | success | No violations or all fixed |
+| `fixpoint/compliance` | failure | Violations found (warn mode) |
+| `fixpoint/compliance` | error | Processing error |
 
 Configure as a required check in branch protection to block merging.
 
@@ -224,7 +224,7 @@ I've automatically applied security fixes to this PR.
 ### Warn Comment (warn mode)
 
 ```markdown
-## 🔒 AuditShield - Compliance Check (Warn Mode)
+## ⚡ Fixpoint - Compliance Check (Warn Mode)
 
 I found compliance violations in this PR. Here are the suggested fixes:
 

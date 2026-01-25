@@ -1,5 +1,5 @@
 """
-GitHub webhook server for AuditShield Phase 2.
+GitHub webhook server for Fixpoint Phase 2.
 Listens for PR events and triggers automatic fixes with full safety and security.
 """
 from __future__ import annotations
@@ -48,7 +48,7 @@ app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "")
 
 # Mode: "warn" (comment only) or "enforce" (apply fixes)
-AUDITSHIELD_MODE = os.getenv("AUDITSHIELD_MODE", "warn").lower()
+FIXPOINT_MODE = os.getenv("FIXPOINT_MODE", "warn").lower()
 
 # Subprocess timeout (seconds)
 GIT_TIMEOUT = int(os.getenv("GIT_TIMEOUT", "120"))
@@ -182,8 +182,8 @@ def process_pr_webhook(payload: dict, correlation_id: str) -> dict:
     is_fork = head_repo_full_name != base_repo_full_name
     
     # Determine effective mode (downgrade enforce to warn for forks)
-    effective_mode = AUDITSHIELD_MODE
-    if is_fork and AUDITSHIELD_MODE == "enforce":
+    effective_mode = FIXPOINT_MODE
+    if is_fork and FIXPOINT_MODE == "enforce":
         effective_mode = "warn"
         log_processing_result(
             correlation_id,
@@ -247,12 +247,12 @@ def process_pr_webhook(payload: dict, correlation_id: str) -> dict:
                 log_processing_result(correlation_id, "no_python", "No Python files changed")
                 return {"status": "no_python", "message": "No Python files changed"}
             
-            # Apply .auditshieldignore
+            # Apply .fixpointignore
             from core.ignore import filter_ignored_files
             python_files = filter_ignored_files(python_files, repo_path)
             if not python_files:
-                log_processing_result(correlation_id, "all_ignored", "All files ignored by .auditshieldignore")
-                return {"status": "all_ignored", "message": "All files ignored by .auditshieldignore"}
+                log_processing_result(correlation_id, "all_ignored", "All files ignored by .fixpointignore")
+                return {"status": "all_ignored", "message": "All files ignored by .fixpointignore"}
             
             # Scan changed files
             rules_path = Path(__file__).parent.parent / "rules" / "sql_injection.yaml"
@@ -279,7 +279,7 @@ def process_pr_webhook(payload: dict, correlation_id: str) -> dict:
                     pr_number=pr_number,
                     violations_found=0,
                     violations_fixed=0,
-                    mode=AUDITSHIELD_MODE,
+                    mode=FIXPOINT_MODE,
                     status="success",
                     metadata={"message": "No violations found"},
                 )
@@ -416,9 +416,9 @@ def process_pr_webhook(payload: dict, correlation_id: str) -> dict:
             setup_git_identity(repo_path)
             
             # Commit and push to existing PR branch
-            # Use canonical marker [auditshield] for loop prevention
+            # Use canonical marker [fixpoint] for loop prevention
             violations_fixed = len([p for p in processed if p["fixed"]])
-            commit_message = f"[auditshield] fix: Apply compliance fixes ({violations_fixed} violation(s))"
+            commit_message = f"[fixpoint] fix: Apply compliance fixes ({violations_fixed} violation(s))"
             
             try:
                 pushed = commit_and_push_to_existing_branch(

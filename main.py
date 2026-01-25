@@ -1,5 +1,5 @@
 """
-AuditShield - Compliance Auto-Patcher
+Fixpoint by IWEB - Compliance Auto-Patcher
 Main entry point supporting both CLI mode (Phase 1) and PR diff mode (Phase 2).
 """
 from __future__ import annotations
@@ -53,10 +53,10 @@ def process_repo_scan(
         if not target_files:
             print("No Python files changed in PR diff.")
             return False, []
-        # Apply .auditshieldignore
+        # Apply .fixpointignore
         target_files = filter_ignored_files(target_files, repo_path)
         if not target_files:
-            print("All files ignored by .auditshieldignore.")
+            print("All files ignored by .fixpointignore.")
             return False, []
         print(f"Changed Python files: {len(target_files)}")
     else:
@@ -90,7 +90,7 @@ def main():
     load_dotenv()
     
     parser = argparse.ArgumentParser(
-        description="AuditShield: Turn security compliance blockers into instant pull requests"
+        description="Fixpoint: Auto-fix security vulnerabilities in your PRs"
     )
     parser.add_argument("repo", type=str, help="Path to local git repo to patch")
     parser.add_argument(
@@ -181,9 +181,9 @@ def main():
     # Git operations
     print("[4/5] Committing fix and pushing")
     
-    # Use canonical marker [auditshield] for loop prevention
+    # Use canonical marker [fixpoint] for loop prevention
     fixed_count = len([p for p in processed if p["fixed"]])
-    commit_message = f"[auditshield] fix: Apply compliance fixes ({fixed_count} violation(s))"
+    commit_message = f"[fixpoint] fix: Apply compliance fixes ({fixed_count} violation(s))"
     
     if args.push_to_existing:
         # Phase 2: Push to existing PR branch

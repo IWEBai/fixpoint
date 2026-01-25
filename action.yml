@@ -1,6 +1,6 @@
-name: "AuditShield Auto-Patcher"
+name: "Fixpoint by IWEB"
 description: "Auto-fix SQL injection, hardcoded secrets, and XSS in PRs. Deterministic fixes with status checks."
-author: "zariffromlatif"
+author: "IWEB"
 
 inputs:
   github_token:
@@ -33,15 +33,15 @@ runs:
       run: pip install semgrep
       shell: bash
     
-    - name: Run AuditShield
+    - name: Run Fixpoint
       env:
         GITHUB_TOKEN: ${{ inputs.github_token || github.token }}
         INPUT_MODE: ${{ inputs.mode }}
         INPUT_BASE_BRANCH: ${{ inputs.base_branch }}
-        AUDITSHIELD_ACTION_PATH: ${{ github.action_path }}
+        FIXPOINT_ACTION_PATH: ${{ github.action_path }}
       run: python ${{ github.action_path }}/entrypoint.py
       shell: bash
 
 branding:
-  icon: "shield"
-  color: "blue"
+  icon: "zap"
+  color: "purple"

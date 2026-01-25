@@ -1,5 +1,5 @@
 """
-Safety and trust mechanisms for AuditShield.
+Safety and trust mechanisms for Fixpoint.
 Handles idempotency, loop prevention, and confidence gating.
 """
 from __future__ import annotations
@@ -45,9 +45,9 @@ def compute_fix_idempotency_key(
 
 def is_bot_commit(commit_message: str, commit_author: str) -> bool:
     """
-    Check if a commit was made by AuditShield bot.
+    Check if a commit was made by Fixpoint bot.
     
-    Uses canonical marker "[auditshield]" in commit message and bot author.
+    Uses canonical marker "[fixpoint]" in commit message and bot author.
     This prevents false positives from normal commits containing words like "autopatch".
     
     Args:
@@ -57,13 +57,13 @@ def is_bot_commit(commit_message: str, commit_author: str) -> bool:
     Returns:
         True if this is a bot commit
     """
-    # Canonical marker: all bot commits must start with "[auditshield]"
-    if commit_message.strip().startswith("[auditshield]"):
+    # Canonical marker: all bot commits must start with "[fixpoint]"
+    if commit_message.strip().startswith("[fixpoint]"):
         return True
     
     # Also check author (canonical bot identity)
     author_lower = commit_author.lower()
-    if "auditshield-bot" in author_lower:
+    if "fixpoint-bot" in author_lower:
         return True
     
     return False
@@ -71,7 +71,7 @@ def is_bot_commit(commit_message: str, commit_author: str) -> bool:
 
 def check_loop_prevention(repo_path: Path, head_sha: str) -> bool:
     """
-    Check if the latest commit is from AuditShield bot.
+    Check if the latest commit is from Fixpoint bot.
     If so, skip processing to prevent infinite loops.
     
     Args:
@@ -109,7 +109,7 @@ def check_loop_prevention(repo_path: Path, head_sha: str) -> bool:
 
 def has_recent_bot_commit(repo_path: Path, max_commits: int = 5) -> bool:
     """
-    Check if any of the recent commits are from AuditShield bot.
+    Check if any of the recent commits are from Fixpoint bot.
     
     Args:
         repo_path: Path to repository

@@ -1,4 +1,4 @@
-# Why AuditShield?
+# Why Fixpoint?
 
 **Stop waiting days for security reviews. Start shipping in minutes.**
 
@@ -32,12 +32,12 @@ Finally merged (3-5 days later)
 
 ## The Solution
 
-AuditShield eliminates this bottleneck by **automatically fixing** security vulnerabilities the moment they're detected.
+Fixpoint eliminates this bottleneck by **automatically fixing** security vulnerabilities the moment they're detected.
 
 ```
 Developer opens PR
     ↓
-AuditShield scans → finds issue → fixes it
+Fixpoint scans → finds issue → fixes it
     ↓
 PR ready to merge (minutes later)
 ```
@@ -46,11 +46,11 @@ No manual intervention. No waiting. No context-switching.
 
 ---
 
-## What Makes AuditShield Different
+## What Makes Fixpoint Different
 
 ### 1. Deterministic Fixes (No AI Hallucinations)
 
-Unlike AI-powered tools that "suggest" fixes, AuditShield applies **rule-based transformations**:
+Unlike AI-powered tools that "suggest" fixes, Fixpoint applies **rule-based transformations**:
 
 | Vulnerability | Fix Applied |
 |---------------|-------------|
@@ -65,10 +65,10 @@ No LLM randomness. No "it worked last time but not this time." Just predictable,
 
 ### 2. Trust-First Approach
 
-Start in **warn mode** — AuditShield comments on PRs with proposed fixes but doesn't change anything:
+Start in **warn mode** — Fixpoint comments on PRs with proposed fixes but doesn't change anything:
 
 ```
-🛡️ AuditShield found 1 vulnerability
+⚡ Fixpoint found 1 vulnerability
 
 📍 app.py line 15 - SQL Injection
 
@@ -87,8 +87,8 @@ Your team reviews the fixes, builds confidence, then graduates to **enforce mode
 Add one file. That's it.
 
 ```yaml
-# .github/workflows/auditshield.yml
-name: AuditShield
+# .github/workflows/fixpoint.yml
+name: Fixpoint
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -99,7 +99,7 @@ permissions:
   statuses: write
 
 jobs:
-  auditshield:
+  fixpoint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -107,7 +107,7 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - uses: zariffromlatif/auditshield@v1
+      - uses: AyeWebDev/fixpoint@v1
         with:
           mode: warn
           base_branch: ${{ github.base_ref }}
@@ -128,7 +128,7 @@ Ship secure code without slowing down. Focus on features, not security fixes.
 Get enterprise-grade security automation without hiring specialists.
 
 ### Organizations With Compliance Requirements
-SOC 2, HIPAA, PCI-DSS — AuditShield ensures common vulnerabilities never make it to production.
+SOC 2, HIPAA, PCI-DSS — Fixpoint ensures common vulnerabilities never make it to production.
 
 ### DevOps Teams
 Reduce PR cycle time. Fewer security-related re-reviews means faster deployments.
@@ -137,8 +137,8 @@ Reduce PR cycle time. Fewer security-related re-reviews means faster deployments
 
 ## Real Impact
 
-| Metric | Before AuditShield | After AuditShield |
-|--------|-------------------|-------------------|
+| Metric | Before Fixpoint | After Fixpoint |
+|--------|-----------------|----------------|
 | Time to fix SQL injection | 2-4 hours | 0 minutes |
 | PR review cycles | 3-5 rounds | 1-2 rounds |
 | Developer context switches | Multiple | None |
@@ -181,7 +181,7 @@ Reduce PR cycle time. Fewer security-related re-reviews means faster deployments
                           ▼
 ┌─────────────────────────────────────────────────────────┐
 │  4. STATUS CHECK                                        │
-│     auditshield/compliance: PASS or FAIL                │
+│     fixpoint/compliance: PASS or FAIL                   │
 │     Block merges until resolved                         │
 └─────────────────────────────────────────────────────────┘
 ```
@@ -192,11 +192,11 @@ Reduce PR cycle time. Fewer security-related re-reviews means faster deployments
 
 ### Step 1: Add the Workflow
 
-Copy the YAML above into `.github/workflows/auditshield.yml` in your repository.
+Copy the YAML above into `.github/workflows/fixpoint.yml` in your repository.
 
 ### Step 2: Open a PR
 
-Create a pull request with any code change. AuditShield runs automatically.
+Create a pull request with any code change. Fixpoint runs automatically.
 
 ### Step 3: Review Results
 
@@ -211,19 +211,19 @@ Once comfortable, change `mode: warn` to `mode: enforce` for automatic fixes.
 
 ## Frequently Asked Questions
 
-### Will AuditShield break my code?
+### Will Fixpoint break my code?
 
-No. AuditShield only makes **safe, deterministic transformations**:
+No. Fixpoint only makes **safe, deterministic transformations**:
 - SQL queries become parameterized (same functionality, secure)
 - Secrets become environment variable lookups (same functionality, secure)
 - XSS filters are removed (Django/Jinja2 auto-escapes by default)
 
 ### What if I don't want a fix applied?
 
-Add the file to `.auditshieldignore`:
+Add the file to `.fixpointignore`:
 
 ```bash
-# .auditshieldignore
+# .fixpointignore
 legacy/
 tests/
 migrations/
@@ -237,15 +237,15 @@ Coming soon: JavaScript/TypeScript, Go, Java, Ruby.
 
 ### Is it free?
 
-Yes. AuditShield is open source under the MIT license.
+Yes. Fixpoint is open source under the MIT license.
 
 ### Can I self-host?
 
 Yes. Run the webhook server on your infrastructure for full control:
 
 ```bash
-docker build -t auditshield .
-docker run -p 8000:8000 auditshield
+docker build -t fixpoint .
+docker run -p 8000:8000 fixpoint
 ```
 
 ---
@@ -264,7 +264,7 @@ We're actively developing:
 ## Start Today
 
 ```yaml
-uses: zariffromlatif/auditshield@v1
+uses: AyeWebDev/fixpoint@v1
 ```
 
 One line. Zero security debt.
@@ -274,9 +274,9 @@ One line. Zero security debt.
 ## Questions?
 
 - **Documentation**: [README.md](../README.md)
-- **Issues**: [GitHub Issues](https://github.com/zariffromlatif/auditshield/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/zariffromlatif/auditshield/discussions)
+- **Issues**: [GitHub Issues](https://github.com/AyeWebDev/fixpoint/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/AyeWebDev/fixpoint/discussions)
 
 ---
 
-*AuditShield — Because security shouldn't slow you down.*
+*Fixpoint by IWEB — Because security shouldn't slow you down.*

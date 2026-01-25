@@ -1,4 +1,4 @@
-# AuditShield Roadmap
+# Fixpoint Roadmap
 
 ## Strategic Path
 
@@ -6,7 +6,7 @@
 
 This roadmap follows the principle: **Don't build the full system immediately. Validate trust first, then expand.**
 
-**Core Framing:** **Outside → Inside the workflow.** AuditShield moves from after-the-fact scanning to PR-time enforcement.
+**Core Framing:** **Outside → Inside the workflow.** Fixpoint moves from after-the-fact scanning to PR-time enforcement.
 
 ---
 
@@ -45,7 +45,7 @@ This roadmap follows the principle: **Don't build the full system immediately. V
 
 ## Phase 2 — Inside the Workflow ✅ COMPLETE
 
-**Goal:** Move AuditShield inside the developer workflow. Enforce merge conditions.
+**Goal:** Move Fixpoint inside the developer workflow. Enforce merge conditions.
 
 **Status:** Complete
 
@@ -167,4 +167,4 @@ This roadmap follows the principle: **Don't build the full system immediately. V
 
 ---
 
-*Last updated: January 2026*
+*Fixpoint by IWEB — Last updated: January 2026*

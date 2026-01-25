@@ -1,14 +1,14 @@
-# Example GitHub Actions workflow for AuditShield
-# Copy this to your repository's .github/workflows/auditshield.yml
+# Example GitHub Actions workflow for Fixpoint
+# Copy this to your repository's .github/workflows/fixpoint.yml
 
-name: AuditShield
+name: Fixpoint
 
 on:
   pull_request:
     types: [opened, synchronize]
 
 jobs:
-  auditshield:
+  fixpoint:
     runs-on: ubuntu-latest
     permissions:
       contents: write  # Required to commit fixes
@@ -21,8 +21,8 @@ jobs:
         with:
           fetch-depth: 0  # Full history for diff
     
-      - name: Run AuditShield
-        uses: your-org/auditshield@main  # Replace with your repo
+      - name: Run Fixpoint
+        uses: AyeWebDev/fixpoint@v1
         with:
           mode: warn  # or "enforce" to auto-apply fixes
           base_branch: main

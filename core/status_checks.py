@@ -1,6 +1,6 @@
 """
-GitHub status check utilities for AuditShield.
-Sets status checks to make AuditShield a true "gate" in GitHub.
+GitHub status check utilities for Fixpoint.
+Sets status checks to make Fixpoint a true "gate" in GitHub.
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ def set_status_check(
     sha: str,
     state: str,
     description: str,
-    context: str = "auditshield/compliance",
+    context: str = "fixpoint/compliance",
     target_url: Optional[str] = None,
 ) -> bool:
     """

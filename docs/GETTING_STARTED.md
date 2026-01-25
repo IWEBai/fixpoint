@@ -1,6 +1,6 @@
-# Getting Started with AuditShield
+# Getting Started with Fixpoint
 
-This guide walks you through setting up and using AuditShield.
+This guide walks you through setting up and using Fixpoint.
 
 ---
 
@@ -53,12 +53,12 @@ gh auth status
 
 ### Option A: GitHub Action (Recommended)
 
-Add AuditShield to your repository with zero infrastructure.
+Add Fixpoint to your repository with zero infrastructure.
 
-**Create `.github/workflows/auditshield.yml`:**
+**Create `.github/workflows/fixpoint.yml`:**
 
 ```yaml
-name: AuditShield
+name: Fixpoint
 
 on:
   pull_request:
@@ -70,7 +70,7 @@ permissions:
   statuses: write
 
 jobs:
-  auditshield:
+  fixpoint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -78,8 +78,8 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - name: AuditShield
-        uses: zariffromlatif/auditshield@v0.1.0
+      - name: Fixpoint
+        uses: AyeWebDev/fixpoint@v1
         with:
           mode: warn  # or "enforce" for auto-fix
           base_branch: ${{ github.base_ref }}
@@ -87,7 +87,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-**That's it!** AuditShield will run on every PR.
+**That's it!** Fixpoint will run on every PR.
 
 ### Option B: Self-Hosted Webhook Server
 
@@ -95,8 +95,8 @@ For organizations that need self-hosted deployments.
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/zariffromlatif/auditshield.git
-   cd auditshield
+   git clone https://github.com/AyeWebDev/fixpoint.git
+   cd fixpoint
    ```
 
 2. **Install dependencies:**
@@ -129,8 +129,8 @@ For local testing and one-off scans.
 
 ```bash
 # Clone and install
-git clone https://github.com/zariffromlatif/auditshield.git
-cd auditshield
+git clone https://github.com/AyeWebDev/fixpoint.git
+cd fixpoint
 pip install -r requirements.txt
 
 # Scan a repository (warn mode)
@@ -149,7 +149,7 @@ python main.py /path/to/repo --pr-mode --base-ref main --head-ref feature-branch
 
 ### Step 1: Add Workflow File
 
-Create `.github/workflows/auditshield.yml` in your repository (see above).
+Create `.github/workflows/fixpoint.yml` in your repository (see above).
 
 ### Step 2: Choose Mode
 
@@ -173,7 +173,7 @@ To block merges until violations are fixed:
 2. Click **Add rule**
 3. Branch name pattern: `main`
 4. Enable **"Require status checks to pass before merging"**
-5. Search and select: `auditshield/compliance`
+5. Search and select: `fixpoint/compliance`
 6. Save
 
 ---
@@ -190,7 +190,7 @@ GITHUB_TOKEN=ghp_xxxxxxxxxxxx
 WEBHOOK_SECRET=your_secret_here
 
 # Mode
-AUDITSHIELD_MODE=warn
+FIXPOINT_MODE=warn
 ENVIRONMENT=production
 
 # Server
@@ -203,8 +203,8 @@ See [Environment Variables](./ENVIRONMENT_VARIABLES.md) for all options.
 ### Docker Deployment
 
 ```bash
-docker build -t auditshield .
-docker run -p 8000:8000 --env-file .env auditshield
+docker build -t fixpoint .
+docker run -p 8000:8000 --env-file .env fixpoint
 ```
 
 ### Verify Deployment
@@ -218,38 +218,12 @@ curl http://localhost:8000/health
 
 ## Demo Repository Setup
 
-To test AuditShield with sample PRs:
-
-### Automated Setup (Windows PowerShell)
-
-```powershell
-cd path\to\auditshield
-
-# Set up demo repo
-.\scripts\setup_demo.ps1
-
-# Create PR with violation (FAIL)
-.\scripts\create_pr_violation.ps1
-
-# Create PR with clean code (PASS)
-.\scripts\create_pr_clean.ps1
-```
-
-### Automated Setup (Linux/Mac)
-
-```bash
-cd path/to/auditshield
-
-chmod +x scripts/*.sh
-./scripts/create_demo_repo.sh
-./scripts/create_pr_violation.sh
-./scripts/create_pr_clean.sh
-```
+To test Fixpoint with sample PRs:
 
 ### Manual Setup
 
 1. Create a new repository
-2. Add the AuditShield workflow file
+2. Add the Fixpoint workflow file
 3. Create a PR with vulnerable code:
    ```python
    query = f"SELECT * FROM users WHERE email = '{email}'"
@@ -267,14 +241,14 @@ chmod +x scripts/*.sh
 
 ### Check PR with Violation
 
-- [ ] AuditShield workflow runs
+- [ ] Fixpoint workflow runs
 - [ ] Comment posted with fix proposal
-- [ ] Status check shows **FAIL** (`auditshield/compliance`)
+- [ ] Status check shows **FAIL** (`fixpoint/compliance`)
 - [ ] Merge blocked (if branch protection configured)
 
 ### Check PR with Clean Code
 
-- [ ] AuditShield workflow runs
+- [ ] Fixpoint workflow runs
 - [ ] Status check shows **PASS**
 - [ ] No comments (no violations)
 - [ ] Merge allowed
@@ -301,29 +275,6 @@ gh auth login
 
 **Solution:** Install GitHub CLI from https://cli.github.com/
 
-### "Script cannot find path"
-
-**Solution:** Run scripts from the main AuditShield directory:
-```bash
-cd path/to/auditshield  # NOT from inside demo repo
-.\scripts\create_pr_violation.ps1
-```
-
-### "Script execution is disabled" (Windows)
-
-**Solution:**
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-### "Repository already exists"
-
-**Solution:** Delete and recreate:
-```bash
-gh repo delete owner/repo --yes
-# Then run setup script again
-```
-
 ### Webhook returns 401
 
 **Causes:**
@@ -347,11 +298,14 @@ gh repo delete owner/repo --yes
 - [API Reference](./API_REFERENCE.md) - Webhook API documentation
 - [Environment Variables](./ENVIRONMENT_VARIABLES.md) - Configuration reference
 - [ROADMAP](../ROADMAP.md) - Upcoming features
-- [Production Checklist](../PRODUCTION_CHECKLIST.md) - Deployment preparation
 
 ---
 
 ## Support
 
-- **Issues:** [GitHub Issues](https://github.com/zariffromlatif/auditshield/issues)
+- **Issues:** [GitHub Issues](https://github.com/AyeWebDev/fixpoint/issues)
 - **Documentation:** This guide and linked references
+
+---
+
+*Fixpoint by IWEB*
