@@ -22,7 +22,7 @@ jobs:
           fetch-depth: 0  # Full history for diff
     
       - name: Run Fixpoint
-        uses: AyeWebDev/fixpoint@v1
+        uses: IWEBai/fixpoint@v1
         with:
           mode: warn  # or "enforce" to auto-apply fixes
           base_branch: main

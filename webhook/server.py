@@ -228,11 +228,11 @@ def process_pr_webhook(payload: dict, correlation_id: str) -> dict:
                 log_processing_result(
                     correlation_id,
                     "skipped",
-                    "Latest commit is from AuditShield bot - skipping to prevent loop"
+                    "Latest commit is from Fixpoint bot - skipping to prevent loop"
                 )
                 return {
                     "status": "skipped",
-                    "message": "Latest commit is from AuditShield bot - skipping to prevent loop"
+                    "message": "Latest commit is from Fixpoint bot - skipping to prevent loop"
                 }
             
             # Get changed files in PR
@@ -343,7 +343,7 @@ def process_pr_webhook(payload: dict, correlation_id: str) -> dict:
                     # Post warn comment with proposals
                     # Add fork notice if this was downgraded from enforce
                     fork_notice = ""
-                    if is_fork and AUDITSHIELD_MODE == "enforce":
+                    if is_fork and FIXPOINT_MODE == "enforce":
                         fork_notice = "\n\n> **Note:** Fork PR detected. Enforce mode is disabled for fork PRs (no write access). Using warn mode instead."
                     
                     comment_url = create_warn_comment(

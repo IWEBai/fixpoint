@@ -107,7 +107,7 @@ jobs:
           ref: ${{ github.head_ref }}
           fetch-depth: 0
 
-      - uses: AyeWebDev/fixpoint@v1
+      - uses: IWEBai/fixpoint@v1
         with:
           mode: warn
           base_branch: ${{ github.base_ref }}
@@ -264,7 +264,7 @@ We're actively developing:
 ## Start Today
 
 ```yaml
-uses: AyeWebDev/fixpoint@v1
+uses: IWEBai/fixpoint@v1
 ```
 
 One line. Zero security debt.
@@ -274,8 +274,8 @@ One line. Zero security debt.
 ## Questions?
 
 - **Documentation**: [README.md](../README.md)
-- **Issues**: [GitHub Issues](https://github.com/AyeWebDev/fixpoint/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/AyeWebDev/fixpoint/discussions)
+- **Issues**: [GitHub Issues](https://github.com/IWEBai/fixpoint/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/IWEBai/fixpoint/discussions)
 
 ---
 

@@ -1,5 +1,5 @@
 """
-Pytest fixtures for AuditShield tests.
+Pytest fixtures for Fixpoint tests.
 """
 import pytest
 import tempfile

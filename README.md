@@ -4,7 +4,7 @@
 
 Fixpoint automatically detects and fixes security vulnerabilities in your pull requests, reducing time-to-merge from days to minutes.
 
-[![Tests](https://img.shields.io/badge/tests-119%20passed-brightgreen)](https://github.com/AyeWebDev/fixpoint)
+[![Tests](https://img.shields.io/badge/tests-119%20passed-brightgreen)](https://github.com/IWEBai/fixpoint)
 [![Python](https://img.shields.io/badge/python-3.12+-blue)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 
@@ -49,7 +49,7 @@ jobs:
           fetch-depth: 0
 
       - name: Fixpoint
-        uses: AyeWebDev/fixpoint@v1
+        uses: IWEBai/fixpoint@v1
         with:
           mode: warn  # Start with warn, graduate to enforce
           base_branch: ${{ github.base_ref }}
@@ -292,8 +292,8 @@ MIT License - See [LICENSE](./LICENSE) for details.
 
 ## Support
 
-- **Issues:** [GitHub Issues](https://github.com/AyeWebDev/fixpoint/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/AyeWebDev/fixpoint/discussions)
+- **Issues:** [GitHub Issues](https://github.com/IWEBai/fixpoint/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/IWEBai/fixpoint/discussions)
 
 ---
 

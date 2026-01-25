@@ -109,7 +109,7 @@ class TestSemgrepScan:
         test_file.write_text('print("test")')
         
         # Create ignore file that ignores everything
-        ignore_file = temp_repo / ".auditshieldignore"
+        ignore_file = temp_repo / ".fixpointignore"
         ignore_file.write_text("*.py\n")
         
         output_json = temp_repo / "results.json"

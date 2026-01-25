@@ -49,7 +49,7 @@ def should_ignore_file(file_path: str, ignore_patterns: List[str], repo_path: Pa
     
     Args:
         file_path: Relative file path (e.g., "src/app.py")
-        ignore_patterns: List of ignore patterns from .auditshieldignore
+        ignore_patterns: List of ignore patterns from .fixpointignore
         repo_path: Repository root path (for resolving absolute paths)
     
     Returns:

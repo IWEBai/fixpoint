@@ -19,7 +19,7 @@ jobs:
           fetch-depth: 0
 
       - name: Fixpoint
-        uses: AyeWebDev/fixpoint@v1
+        uses: IWEBai/fixpoint@v1
         with:
           mode: warn  # Start with warn, graduate to enforce
           base_branch: ${{ github.base_ref }}

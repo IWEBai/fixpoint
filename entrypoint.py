@@ -104,7 +104,7 @@ def main():
         target_files = get_pr_diff_files_local(workspace, base_branch, head_ref)
         # Filter to Python files only
         target_files = [f for f in target_files if f.endswith(".py")]
-        # Apply .auditshieldignore
+        # Apply .fixpointignore
         target_files = filter_ignored_files(target_files, workspace)
         print(f"Changed Python files: {len(target_files)}")
         if target_files:

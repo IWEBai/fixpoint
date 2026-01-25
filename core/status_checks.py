@@ -30,7 +30,7 @@ def set_status_check(
         sha: Commit SHA
         state: "success", "failure", "error", or "pending"
         description: Status description
-        context: Status check context (default: "auditshield/compliance")
+        context: Status check context (default: "fixpoint/compliance")
         target_url: Optional URL for more details
     
     Returns:

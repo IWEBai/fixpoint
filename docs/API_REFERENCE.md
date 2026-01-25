@@ -204,12 +204,12 @@ Configure as a required check in branch protection to block merging.
 
 ## PR Comments
 
-AuditShield posts comments on PRs to explain actions:
+Fixpoint posts comments on PRs to explain actions:
 
 ### Fix Applied Comment (enforce mode)
 
 ```markdown
-## 🔒 AuditShield AutoPatch
+## 🔒 Fixpoint AutoPatch
 
 I've automatically applied security fixes to this PR.
 

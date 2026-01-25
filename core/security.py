@@ -1,5 +1,5 @@
 """
-Security utilities for AuditShield webhook server.
+Security utilities for Fixpoint webhook server.
 Handles signature verification, event filtering, and replay protection.
 """
 from __future__ import annotations

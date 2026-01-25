@@ -1,5 +1,5 @@
 """
-Metrics collection for AuditShield.
+Metrics collection for Fixpoint.
 Logs metrics, exports CSV, generates email reports.
 NO DASHBOARD - Data > Dashboards (early-stage).
 """
@@ -151,7 +151,7 @@ def generate_email_report() -> str:
     if not summary:
         return "No metrics collected yet."
     
-    report = "AuditShield Metrics Report\n"
+    report = "Fixpoint Metrics Report\n"
     report += "=" * 50 + "\n\n"
     
     report += f"Total Events: {summary['total_events']}\n"

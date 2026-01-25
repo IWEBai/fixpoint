@@ -1,5 +1,5 @@
 """
-Core scanning engine for AuditShield.
+Core scanning engine for Fixpoint.
 Supports both full repository scanning and PR diff scanning.
 """
 from __future__ import annotations
@@ -47,12 +47,12 @@ def semgrep_scan(
         rules_path: Path to Semgrep rules file
         out_json: Path to write JSON results
         target_files: Optional list of specific files to scan (for PR diff mode)
-        apply_ignore: If True, filter files using .auditshieldignore
+        apply_ignore: If True, filter files using .fixpointignore
     
     Returns:
         Parsed Semgrep results as dict
     """
-    # Apply .auditshieldignore filtering
+    # Apply .fixpointignore filtering
     if apply_ignore and target_files:
         ignore_patterns = read_ignore_file(repo_path)
         target_files = filter_ignored_files(target_files, repo_path, ignore_patterns)

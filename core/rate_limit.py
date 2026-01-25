@@ -1,5 +1,5 @@
 """
-Rate limiting utilities for AuditShield webhook server.
+Rate limiting utilities for Fixpoint webhook server.
 Prevents DDoS on synchronize storms.
 """
 from __future__ import annotations

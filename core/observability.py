@@ -1,5 +1,5 @@
 """
-Observability utilities for AuditShield.
+Observability utilities for Fixpoint.
 Structured logging and correlation IDs for debugging.
 """
 from __future__ import annotations

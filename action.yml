@@ -1,19 +1,28 @@
-name: "Fixpoint by IWEB"
-description: "Auto-fix SQL injection, hardcoded secrets, and XSS in PRs. Deterministic fixes with status checks."
+name: "Fixpoint - Auto-Fix Security Vulnerabilities"
+description: "Automatically detect and fix SQL injection, hardcoded secrets, and XSS vulnerabilities in your pull requests. Deterministic fixes with no AI hallucinations."
 author: "IWEB"
 
 inputs:
   github_token:
-    description: "GitHub token for API access (use secrets.GITHUB_TOKEN)"
+    description: "GitHub token for API access. Uses the automatic GITHUB_TOKEN by default."
     required: false
-  base_branch:
-    description: "Base branch to compare against"
-    required: false
-    default: "main"
+    default: ${{ github.token }}
   mode:
-    description: "Mode: 'warn' (comments only) or 'enforce' (auto-fix commits)"
+    description: "Operation mode: 'warn' posts comments with suggested fixes, 'enforce' automatically applies fixes and commits."
     required: false
     default: "warn"
+  base_branch:
+    description: "Base branch to compare against for detecting changed files."
+    required: false
+    default: "main"
+
+outputs:
+  violations_found:
+    description: "Number of security violations found"
+  violations_fixed:
+    description: "Number of violations fixed (enforce mode only)"
+  status:
+    description: "Result status: success, warn_mode, no_findings, error"
 
 runs:
   using: "composite"
@@ -22,6 +31,8 @@ runs:
       uses: actions/setup-python@v5
       with:
         python-version: "3.12"
+        cache: "pip"
+        cache-dependency-path: ${{ github.action_path }}/requirements.txt
     
     - name: Install dependencies
       run: |
@@ -35,7 +46,7 @@ runs:
     
     - name: Run Fixpoint
       env:
-        GITHUB_TOKEN: ${{ inputs.github_token || github.token }}
+        GITHUB_TOKEN: ${{ inputs.github_token }}
         INPUT_MODE: ${{ inputs.mode }}
         INPUT_BASE_BRANCH: ${{ inputs.base_branch }}
         FIXPOINT_ACTION_PATH: ${{ github.action_path }}
@@ -43,5 +54,5 @@ runs:
       shell: bash
 
 branding:
-  icon: "zap"
+  icon: "shield"
   color: "purple"

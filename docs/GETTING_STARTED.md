@@ -79,7 +79,7 @@ jobs:
           fetch-depth: 0
 
       - name: Fixpoint
-        uses: AyeWebDev/fixpoint@v1
+        uses: IWEBai/fixpoint@v1
         with:
           mode: warn  # or "enforce" for auto-fix
           base_branch: ${{ github.base_ref }}
@@ -95,7 +95,7 @@ For organizations that need self-hosted deployments.
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/AyeWebDev/fixpoint.git
+   git clone https://github.com/IWEBai/fixpoint.git
    cd fixpoint
    ```
 
@@ -129,7 +129,7 @@ For local testing and one-off scans.
 
 ```bash
 # Clone and install
-git clone https://github.com/AyeWebDev/fixpoint.git
+git clone https://github.com/IWEBai/fixpoint.git
 cd fixpoint
 pip install -r requirements.txt
 
@@ -303,7 +303,7 @@ gh auth login
 
 ## Support
 
-- **Issues:** [GitHub Issues](https://github.com/AyeWebDev/fixpoint/issues)
+- **Issues:** [GitHub Issues](https://github.com/IWEBai/fixpoint/issues)
 - **Documentation:** This guide and linked references
 
 ---

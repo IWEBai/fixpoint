@@ -214,7 +214,7 @@ Same as `FIXPOINT_MODE`.
 
 **Example:**
 ```yaml
-- uses: AyeWebDev/fixpoint@v1
+- uses: IWEBai/fixpoint@v1
   with:
     mode: warn
 ```
@@ -229,7 +229,7 @@ Base branch to compare against.
 
 **Example:**
 ```yaml
-- uses: AyeWebDev/fixpoint@v1
+- uses: IWEBai/fixpoint@v1
   with:
     base_branch: main
 ```
@@ -295,7 +295,7 @@ GITHUB_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxx
 WEBHOOK_SECRET=your_secure_secret_here
 
 # Mode
-AUDITSHIELD_MODE=warn
+FIXPOINT_MODE=warn
 ENVIRONMENT=production
 
 # Server
