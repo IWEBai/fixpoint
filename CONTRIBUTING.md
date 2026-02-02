@@ -20,7 +20,7 @@ Thank you for your interest in contributing to Fixpoint by IWEB.
 5. **Commit** with a clear message, e.g. `fix: ...` or `feat: ...`.
 6. **Push** to your fork and open a **Pull Request** against `main`.
 
-We’ll review your PR and may ask for small edits. Once approved, we’ll merge it.
+We'll review your PR and may ask for small edits. Once approved, we'll merge it.
 
 ### Documentation
 
@@ -37,12 +37,6 @@ pip install -r requirements.txt
 pip install semgrep   # for full test run (Linux/macOS)
 pytest
 ```
-
----
-
-## Code of conduct
-
-Please read [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md). By participating, you agree to uphold it.
 
 ---
 

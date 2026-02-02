@@ -13,7 +13,7 @@ We release security updates for the **latest major version** of Fixpoint. Please
 
 ## Reporting a vulnerability
 
-If you believe you’ve found a **security vulnerability** in Fixpoint (e.g. in the webhook server, auth, or code execution), please report it responsibly.
+If you believe you've found a **security vulnerability** in Fixpoint (e.g. in the webhook server, auth, or code execution), please report it responsibly.
 
 **Do not** open a public GitHub issue for security-sensitive findings.
 
@@ -28,14 +28,14 @@ Include:
 - What you expected vs what happened.
 - Your environment (OS, Python version, how you run Fixpoint).
 
-We’ll respond as soon as we can and will work with you on a fix and disclosure timeline.
+We'll respond as soon as we can and will work with you on a fix and disclosure timeline.
 
 ### What to expect
 
-- We’ll confirm receipt of your report.
-- We’ll assess the finding and may ask for more details.
-- We’ll work on a fix and keep you updated.
-- We’ll credit you in the advisory/release notes (unless you prefer to stay anonymous).
+- We'll confirm receipt of your report.
+- We'll assess the finding and may ask for more details.
+- We'll work on a fix and keep you updated.
+- We'll credit you in the advisory/release notes (unless you prefer to stay anonymous).
 
 ---
 
