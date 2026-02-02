@@ -301,11 +301,26 @@ gh auth login
 
 ---
 
-## Support
+## Using Fixpoint? Tell Us
 
+Your feedback and adoption help us improve Fixpoint and plan paid offerings.
+
+| We'd love to... | How |
+|-----------------|-----|
+| **Know who's using it** | Reply in [Who's using Fixpoint?](https://github.com/IWEBai/fixpoint/discussions/categories/whos-using-fixpoint) (optional: company/repo name). |
+| **Get your feedback** | Open an [Issue](https://github.com/IWEBai/fixpoint/issues) or [Discussion](https://github.com/IWEBai/fixpoint/discussions) — bugs, feature ideas, or questions. |
+| **Offer you more** | Need hosted Fixpoint (SaaS) or enterprise support? [Get in touch](https://github.com/IWEBai/fixpoint/discussions/categories/general) — we're building paid options. |
+
+---
+
+## Support & Community
+
+- **Website:** [iwebai.space](https://www.iwebai.space)
+- **Community:** [r/IWEBai on Reddit](https://www.reddit.com/r/IWEBai/)
 - **Issues:** [GitHub Issues](https://github.com/IWEBai/fixpoint/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/IWEBai/fixpoint/discussions)
 - **Documentation:** This guide and linked references
 
 ---
 
-*Fixpoint by IWEB*
+*Fixpoint by [IWEB](https://www.iwebai.space)*

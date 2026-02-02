@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: IWEB website
+    url: https://www.iwebai.space
+    about: IWEB company website
+  - name: r/IWEBai (Reddit)
+    url: https://www.reddit.com/r/IWEBai/
+    about: Community discussions on Reddit
+  - name: GitHub Discussions
+    url: https://github.com/IWEBai/fixpoint/discussions
+    about: Ask questions or share ideas

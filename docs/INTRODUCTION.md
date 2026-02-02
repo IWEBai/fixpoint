@@ -273,10 +273,12 @@ One line. Zero security debt.
 
 ## Questions?
 
-- **Documentation**: [README.md](../README.md)
-- **Issues**: [GitHub Issues](https://github.com/IWEBai/fixpoint/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/IWEBai/fixpoint/discussions)
+- **Website:** [iwebai.space](https://www.iwebai.space)
+- **Community:** [r/IWEBai on Reddit](https://www.reddit.com/r/IWEBai/)
+- **Documentation:** [README.md](../README.md)
+- **Issues:** [GitHub Issues](https://github.com/IWEBai/fixpoint/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/IWEBai/fixpoint/discussions)
 
 ---
 
-*Fixpoint by IWEB — Because security shouldn't slow you down.*
+*Fixpoint by [IWEB](https://www.iwebai.space) — Because security shouldn't slow you down.*

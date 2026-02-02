@@ -166,6 +166,7 @@ def create_fix_comment(
         comment_body += "\n---\n"
         comment_body += "*This fix was applied automatically by Fixpoint. "
         comment_body += "Please review the changes before merging.*"
+        comment_body += "\n\n**[Using Fixpoint?](https://github.com/IWEBai/fixpoint#using-fixpoint) Let us know — we'd love your feedback.**"
         
         # Post comment
         comment = pr.create_issue_comment(comment_body)
@@ -260,6 +261,7 @@ def create_warn_comment(
         comment_body += "---\n"
         comment_body += "*This is warn mode - no changes were applied. "
         comment_body += "Review the suggestions and apply manually, or enable enforce mode.*"
+        comment_body += "\n\n**[Using Fixpoint?](https://github.com/IWEBai/fixpoint#using-fixpoint) Let us know — we'd love your feedback.**"
         
         if head_sha:
             comment_body += f"\n\n*Commit: `{head_sha[:8]}`*"

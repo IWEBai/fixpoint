@@ -279,6 +279,8 @@ See [API Reference](./docs/API_REFERENCE.md) for details.
 
 ## Documentation
 
+- [**iwebai.space**](https://www.iwebai.space) - IWEB website
+- [**r/IWEBai**](https://www.reddit.com/r/IWEBai/) - Community on Reddit
 - [Demo Repository](https://github.com/IWEBai/fixpoint-demo) - Try Fixpoint with vulnerable code examples
 - [Introduction](./docs/INTRODUCTION.md) - Why Fixpoint?
 - [Getting Started](./docs/GETTING_STARTED.md) - Complete setup guide
@@ -294,11 +296,27 @@ MIT License - See [LICENSE](./LICENSE) for details.
 
 ---
 
-## Support
+## Using Fixpoint?
 
+**Let us know — it helps us improve and plan what to build next.**
+
+| We'd love to... | How |
+|-----------------|-----|
+| **Know who's using it** | Reply in [**"Who's using Fixpoint?"**](https://github.com/IWEBai/fixpoint/discussions/categories/whos-using-fixpoint) with your company/repo (optional). |
+| **Get your feedback** | Open an [**Issue**](https://github.com/IWEBai/fixpoint/issues) or [**Discussion**](https://github.com/IWEBai/fixpoint/discussions) — bugs, feature ideas, or "how do I...?" |
+| **Offer you more** | Need hosted Fixpoint (SaaS) or enterprise support? [**Get in touch**](https://github.com/IWEBai/fixpoint/discussions/categories/general) — we're building paid options. |
+
+---
+
+## Support & Community
+
+- **Website:** [iwebai.space](https://www.iwebai.space)
+- **Community:** [r/IWEBai on Reddit](https://www.reddit.com/r/IWEBai/)
+- **Contributing:** [CONTRIBUTING.md](CONTRIBUTING.md)
+- **Security:** [SECURITY.md](SECURITY.md) (report vulnerabilities)
 - **Issues:** [GitHub Issues](https://github.com/IWEBai/fixpoint/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/IWEBai/fixpoint/discussions)
 
 ---
 
-*Fixpoint by IWEB — Because security shouldn't slow you down.*
+*Fixpoint by [IWEB](https://www.iwebai.space) — Because security shouldn't slow you down.*
