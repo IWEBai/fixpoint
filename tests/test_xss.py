@@ -1,16 +1,11 @@
 """
 Tests for XSS vulnerability detection and fixing.
 """
-import pytest
-from pathlib import Path
 from patcher.detect_xss import (
     find_xss_in_template,
     find_xss_in_python,
-    find_all_xss,
-    XSSVulnerability,
 )
 from patcher.fix_xss import (
-    apply_fix_xss,
     apply_fix_xss_template,
     apply_fix_xss_python,
     propose_fix_xss,
@@ -153,7 +148,7 @@ ICON = mark_safe('<i class="icon"></i>')
 ''')
         
         content = app_file.read_text()
-        vulns = find_xss_in_python(content)
+        find_xss_in_python(content)
         
         # Literal string should not be flagged
         # Note: Our AST detection is conservative, so this may or may not flag

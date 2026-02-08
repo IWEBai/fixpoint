@@ -41,8 +41,11 @@ def apply_fix_path_traversal(repo_path: Path, target_relpath: str) -> bool:
     lines = text.splitlines(True)
     changed = False
 
-    # Pattern: var = os.path.join(base, user_var)
-    pattern = re.compile(r"^(\s*)(\w+)\s*=\s*os\.path\.join\s*\(\s*([^,]+)\s*,\s*([^)]+)\s*\)\s*$")
+    # Pattern: var = os.path.join(base, user_var, ...)
+    # Matches 2+ arguments; allows trailing comments
+    pattern = re.compile(
+        r"^(\s*)(\w+)\s*=\s*os\.path\.join\s*\(\s*([^,]+)\s*,\s*(.+?)\s*\)\s*(?:#.*)?$"
+    )
 
     for i, line in enumerate(lines):
         if "os.path.join" not in line:
@@ -58,8 +61,9 @@ def apply_fix_path_traversal(repo_path: Path, target_relpath: str) -> bool:
             if "Path traversal denied" in next_line or "realpath" in next_line:
                 continue
         # Insert validation after assignment
+        # Handle Path objects - str() converts Path("/tmp") to "/tmp" for realpath
         check = (
-            f'{indent_str}if not os.path.realpath({var}).startswith(os.path.realpath({base})):\n'
+            f'{indent_str}if not os.path.realpath(str({var})).startswith(os.path.realpath(str({base}))):\n'
             f'{indent_str}    raise PermissionError("Path traversal denied")\n'
         )
         lines.insert(i + 1, check)
@@ -73,6 +77,26 @@ def apply_fix_path_traversal(repo_path: Path, target_relpath: str) -> bool:
 
 def propose_fix_path_traversal(repo_path: Path, target_relpath: str) -> list[dict] | None:
     """Propose path traversal fix (warn mode)."""
+    repo_path = Path(repo_path)
+    target_file = repo_path / target_relpath
+    if not target_file.exists():
+        return None
+    lines = target_file.read_text(encoding="utf-8", errors="ignore").splitlines()
+    pattern = re.compile(
+        r"^(\s*)(\w+)\s*=\s*os\.path\.join\s*\(\s*([^,]+)\s*,\s*(.+?)\s*\)\s*(?:#.*)?$"
+    )
+    for i, line in enumerate(lines):
+        m = pattern.search(line)
+        if m:
+            indent, var, base, _ = m.groups()
+            base = base.strip()
+            before = line.strip()
+            after = (
+                f"{before}\n"
+                f"{indent}if not os.path.realpath(str({var})).startswith(os.path.realpath(str({base}))):\n"
+                f'{indent}    raise PermissionError("Path traversal denied")'
+            )
+            return [{"file": target_relpath, "line": i + 1, "before": before, "after": after}]
     return [{
         "file": target_relpath,
         "line": 0,

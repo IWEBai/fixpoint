@@ -4,11 +4,10 @@ Replaces hardcoded secrets with os.environ or os.getenv() calls.
 """
 from __future__ import annotations
 
-import ast
 import re
 from pathlib import Path
 from typing import Optional, List, Tuple
-from patcher.detect_secrets import find_hardcoded_secrets, HardcodedSecret, _suggest_env_var
+from patcher.detect_secrets import find_hardcoded_secrets
 
 
 def _ensure_os_import(lines: List[str]) -> Tuple[List[str], int]:
@@ -114,7 +113,6 @@ def apply_fix_secrets(repo_path: Path, target_relpath: str) -> bool:
         return False
     
     line_idx = secret.line_number - 1
-    original_line = lines[line_idx]
     
     # Ensure os import is present
     lines, offset = _ensure_os_import(lines)
@@ -168,7 +166,7 @@ def apply_fix_secrets(repo_path: Path, target_relpath: str) -> bool:
             break
     
     if new_line == lines[line_idx]:
-        print(f"ABORT: Could not replace secret in line")
+        print("ABORT: Could not replace secret in line")
         return False
     
     lines[line_idx] = new_line
@@ -213,9 +211,15 @@ def propose_fix_secrets(repo_path: Path, target_relpath: str) -> Optional[dict]:
     
     secret = secrets[0]
     
+    # Format for consistent display in PR comments
+    before = f'{secret.var_name} = "{secret.value or "***"}"'
+    after = f'{secret.var_name} = os.environ.get("{secret.suggested_env_var}")'
+    
     return {
         "file": str(target_relpath),
         "line": secret.line_number,
+        "before": before,
+        "after": after,
         "secret_type": secret.secret_type,
         "var_name": secret.var_name,
         "confidence": secret.confidence,

@@ -1,9 +1,7 @@
 """
 Tests for hardcoded secrets detection and fixing.
 """
-import pytest
-from pathlib import Path
-from patcher.detect_secrets import find_hardcoded_secrets, HardcodedSecret
+from patcher.detect_secrets import find_hardcoded_secrets
 from patcher.fix_secrets import apply_fix_secrets, propose_fix_secrets
 
 

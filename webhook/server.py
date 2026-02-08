@@ -247,16 +247,17 @@ def process_pr_webhook(payload: dict, correlation_id: str) -> dict:
                 log_processing_result(correlation_id, "no_changes", "No files changed in PR")
                 return {"status": "no_changes", "message": "No files changed in PR"}
             
-            # Filter to Python files only (Phase 1 limitation)
-            python_files = [f for f in changed_files if f.endswith(".py")]
-            if not python_files:
-                log_processing_result(correlation_id, "no_python", "No Python files changed")
-                return {"status": "no_python", "message": "No Python files changed"}
+            # Filter to supported files (Python + JS/TS)
+            ext_ok = (".py", ".js", ".ts", ".jsx", ".tsx")
+            target_files = [f for f in changed_files if f.endswith(ext_ok)]
+            if not target_files:
+                log_processing_result(correlation_id, "no_supported_files", "No supported files changed")
+                return {"status": "no_supported_files", "message": "No supported files changed"}
             
             # Apply .fixpointignore
             from core.ignore import filter_ignored_files
-            python_files = filter_ignored_files(python_files, repo_path)
-            if not python_files:
+            target_files = filter_ignored_files(target_files, repo_path)
+            if not target_files:
                 log_processing_result(correlation_id, "all_ignored", "All files ignored by .fixpointignore")
                 return {"status": "all_ignored", "message": "All files ignored by .fixpointignore"}
             
@@ -264,7 +265,7 @@ def process_pr_webhook(payload: dict, correlation_id: str) -> dict:
             rules_path = Path(__file__).parent.parent / "rules"
             results_path = Path(temp_dir) / "semgrep_results.json"
             
-            data = semgrep_scan(repo_path, rules_path, results_path, python_files, apply_ignore=False)  # Already filtered above
+            data = semgrep_scan(repo_path, rules_path, results_path, target_files, apply_ignore=False)  # Already filtered above
             findings = data.get("results", [])
             
             if not findings:
@@ -328,6 +329,11 @@ def process_pr_webhook(payload: dict, correlation_id: str) -> dict:
             # WARN MODE: Propose fixes without applying (includes fork PRs downgraded from enforce)
             if effective_mode == "warn":
                 from patcher.fix_sqli import propose_fix_sqli
+                from patcher.fix_secrets import propose_fix_secrets
+                from patcher.fix_xss import propose_fix_xss
+                from patcher.fix_command_injection import propose_fix_command_injection
+                from patcher.fix_path_traversal import propose_fix_path_traversal
+                from patcher.fix_javascript import propose_fix_js_eval, propose_fix_js_secrets, propose_fix_js_dom_xss
                 
                 proposed_fixes = []
                 for finding in findings_to_process:
@@ -341,7 +347,34 @@ def process_pr_webhook(payload: dict, correlation_id: str) -> dict:
                     else:
                         target_relpath = file_path
                     
-                    proposal = propose_fix_sqli(repo_path, str(target_relpath))
+                    check_id = finding.get("check_id", "").lower()
+                    proposal = None
+                    
+                    # Route by check_id
+                    if "sql" in check_id or "sqli" in check_id:
+                        proposal = propose_fix_sqli(repo_path, str(target_relpath))
+                    elif "hardcoded" in check_id or "secret" in check_id or "token" in check_id or "key" in check_id or "password" in check_id:
+                        if "javascript" in check_id or "typescript" in check_id:
+                            proposals = propose_fix_js_secrets(repo_path, str(target_relpath))
+                            if proposals: proposal = proposals[0]
+                        else:
+                            proposal = propose_fix_secrets(repo_path, str(target_relpath))
+                    elif "xss" in check_id or "mark-safe" in check_id or "safe-filter" in check_id:
+                        if "dom-xss" in check_id:
+                            proposals = propose_fix_js_dom_xss(repo_path, str(target_relpath))
+                            if proposals: proposal = proposals[0]
+                        else:
+                            proposal = propose_fix_xss(repo_path, str(target_relpath))
+                    elif "command-injection" in check_id or "os-system" in check_id or "subprocess" in check_id:
+                        proposals = propose_fix_command_injection(repo_path, str(target_relpath))
+                        if proposals: proposal = proposals[0]
+                    elif "path-traversal" in check_id:
+                        proposals = propose_fix_path_traversal(repo_path, str(target_relpath))
+                        if proposals: proposal = proposals[0]
+                    elif "eval" in check_id:
+                        proposals = propose_fix_js_eval(repo_path, str(target_relpath))
+                        if proposals: proposal = proposals[0]
+                    
                     if proposal:
                         proposed_fixes.append(proposal)
                 
@@ -666,5 +699,5 @@ def health_check():
 
 
 if __name__ == "__main__":
-    port = int(os.getenv("PORT", 5000))
+    port = int(os.getenv("PORT", 8000))
     app.run(host="0.0.0.0", port=port, debug=os.getenv("DEBUG", "false").lower() == "true")

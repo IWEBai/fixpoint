@@ -1,7 +1,6 @@
 """
 Tests for security module.
 """
-import pytest
 import hmac
 import hashlib
 import os
@@ -64,7 +63,6 @@ class TestVerifyWebhookSignature:
     def test_skip_verification_env_var(self):
         """Should skip verification only when explicitly requested."""
         payload = b'{"action": "opened"}'
-        signature = "sha256=anything"
         
         # With SKIP_WEBHOOK_VERIFICATION=true, should pass without secret
         with patch.dict(os.environ, {"SKIP_WEBHOOK_VERIFICATION": "true"}):

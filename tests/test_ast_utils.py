@@ -1,7 +1,6 @@
 """
 Tests for patcher/ast_utils.py - AST parsing utilities.
 """
-import pytest
 from patcher.ast_utils import extract_fstring_variables, find_sqli_pattern_in_ast
 
 
@@ -162,7 +161,7 @@ x = 15
 x = 16
 cursor.execute(query)
 '''
-        result = find_sqli_pattern_in_ast(code)
+        find_sqli_pattern_in_ast(code)
         
         # Execute is more than 15 lines from query (handled in fixer, not AST)
         # AST module just finds the pattern, distance check is in fixer

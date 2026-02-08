@@ -5,7 +5,6 @@ Creates or updates pull requests with auto-fix commits.
 from __future__ import annotations
 
 import os
-from typing import Optional
 from github import Github, Auth
 from dotenv import load_dotenv
 

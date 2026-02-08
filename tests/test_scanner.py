@@ -3,8 +3,6 @@ Tests for core/scanner.py - the scanning engine.
 """
 import pytest
 import subprocess
-from pathlib import Path
-from unittest.mock import patch, MagicMock
 from core.scanner import run, semgrep_scan, get_pr_diff_files_local
 
 

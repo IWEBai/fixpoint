@@ -9,7 +9,7 @@ if __name__ == "__main__":
     from dotenv import load_dotenv
     
     load_dotenv()
-    port = int(os.getenv("PORT", 5000))
+    port = int(os.getenv("PORT", 8000))
     debug = os.getenv("DEBUG", "false").lower() == "true"
     
     print(f"Starting Fixpoint webhook server on port {port}")

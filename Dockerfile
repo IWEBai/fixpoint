@@ -10,8 +10,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy requirements first for better layer caching
 COPY requirements.txt .
 
-# Install runtime deps
-RUN pip install --no-cache-dir -r requirements.txt
+# Install runtime deps + Semgrep (required for scanning)
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install --no-cache-dir semgrep
 
 # Copy application code
 COPY . /app

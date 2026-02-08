@@ -7,7 +7,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from typing import Optional, List
-from patcher.detect_xss import find_xss_in_template, find_xss_in_python, XSSVulnerability
+from patcher.detect_xss import find_xss_in_template, find_xss_in_python
 
 
 def _fix_safe_filter_in_line(line: str) -> str:
@@ -275,9 +275,24 @@ def propose_fix_xss(repo_path: Path, target_relpath: str) -> Optional[dict]:
     
     vuln = vulns[0]
     
+    # Format for consistent display in PR comments
+    before = vuln.code_snippet or "mark_safe(user_input)"
+    if vuln.vuln_type == "safe_filter":
+        after = before.replace("|safe", "")
+    elif vuln.vuln_type == "autoescape_off":
+        after = "{% autoescape on %} ... {% endautoescape %}"
+    elif "mark_safe" in before:
+        after = before.replace("mark_safe(", "escape(")
+    elif "SafeString" in before:
+        after = before.replace("SafeString(", "escape(")
+    else:
+        after = "Use safe escaping"
+    
     return {
         "file": str(target_relpath),
         "line": vuln.line_number,
+        "before": before,
+        "after": after,
         "vuln_type": vuln.vuln_type,
         "confidence": vuln.confidence,
         "description": vuln.description,

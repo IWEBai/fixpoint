@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import ast
 import re
-from typing import List, Optional
+from typing import List
 from dataclasses import dataclass
 from pathlib import Path
 

@@ -10,7 +10,7 @@ Supported vulnerability types:
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional, Callable
+from typing import Optional
 
 
 # Mapping of vulnerability patterns to fixers
@@ -94,6 +94,75 @@ def _get_fixer_for_finding(check_id: str) -> Optional[str]:
             return fixer
     
     return None
+
+
+def _propose_fixer(
+    fixer_name: str,
+    repo_path: Path,
+    target_relpath: str,
+    finding: Optional[dict] = None,
+) -> Optional[dict]:
+    """
+    Propose a fix based on fixer name (warn mode).
+    
+    Args:
+        fixer_name: Name of the fixer to use
+        repo_path: Path to repository root
+        target_relpath: Relative path to the target file
+        finding: Optional Semgrep finding (for line number when proposal has line 0)
+    
+    Returns:
+        Proposal dict with fix details or None
+    """
+    try:
+        if fixer_name == "fix_sqli":
+            from patcher.fix_sqli import propose_fix_sqli
+            return propose_fix_sqli(repo_path, target_relpath)
+        
+        elif fixer_name == "fix_secrets":
+            from patcher.fix_secrets import propose_fix_secrets
+            return propose_fix_secrets(repo_path, target_relpath)
+        
+        elif fixer_name == "fix_xss":
+            from patcher.fix_xss import propose_fix_xss
+            return propose_fix_xss(repo_path, target_relpath)
+        
+        elif fixer_name == "fix_command_injection":
+            from patcher.fix_command_injection import propose_fix_command_injection
+            result = propose_fix_command_injection(repo_path, target_relpath)
+            return result[0] if result else None
+        
+        elif fixer_name == "fix_path_traversal":
+            from patcher.fix_path_traversal import propose_fix_path_traversal
+            result = propose_fix_path_traversal(repo_path, target_relpath)
+            return result[0] if result else None
+        
+        elif fixer_name == "fix_ssrf":
+            from patcher.fix_ssrf import propose_fix_ssrf
+            result = propose_fix_ssrf(repo_path, target_relpath)
+            return result[0] if result else None
+        
+        elif fixer_name == "fix_js_eval":
+            from patcher.fix_javascript import propose_fix_js_eval
+            result = propose_fix_js_eval(repo_path, target_relpath)
+            return result[0] if result else None
+        
+        elif fixer_name == "fix_js_secrets":
+            from patcher.fix_javascript import propose_fix_js_secrets
+            result = propose_fix_js_secrets(repo_path, target_relpath)
+            return result[0] if result else None
+        
+        elif fixer_name == "fix_js_dom_xss":
+            from patcher.fix_javascript import propose_fix_js_dom_xss
+            result = propose_fix_js_dom_xss(repo_path, target_relpath)
+            return result[0] if result else None
+        
+        else:
+            return None
+    
+    except Exception as e:
+        print(f"Error proposing {fixer_name}: {e}")
+        return None
 
 
 def _apply_fixer(fixer_name: str, repo_path: Path, target_relpath: str) -> bool:
@@ -280,5 +349,23 @@ def get_fixer_info() -> dict:
             "description": "Detection + guidance for requests.get/post, urlopen",
             "patterns": ["ssrf", "requests-get", "requests-post", "urlopen"],
             "languages": ["python"],
+        },
+        "fix_js_eval": {
+            "name": "JavaScript eval Fixer",
+            "description": "Detection only - recommends JSON.parse or safe alternative",
+            "patterns": ["javascript-eval", "typescript-eval", "eval-dangerous"],
+            "languages": ["javascript", "typescript"],
+        },
+        "fix_js_secrets": {
+            "name": "JavaScript Secrets Fixer",
+            "description": "Replaces hardcoded secrets with process.env",
+            "patterns": ["javascript-hardcoded-secret", "typescript-hardcoded-secret"],
+            "languages": ["javascript", "typescript"],
+        },
+        "fix_js_dom_xss": {
+            "name": "JavaScript DOM XSS Fixer",
+            "description": "Replaces innerHTML with textContent",
+            "patterns": ["javascript-dom-xss", "typescript-dom-xss", "dom-xss-innerhtml", "dom-xss-document-write"],
+            "languages": ["javascript", "typescript"],
         },
     }

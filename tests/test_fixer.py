@@ -1,9 +1,6 @@
 """
 Tests for core/fixer.py - the fixing engine.
 """
-import pytest
-from pathlib import Path
-from unittest.mock import patch, MagicMock
 from core.fixer import process_findings
 
 

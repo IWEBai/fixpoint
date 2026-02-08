@@ -57,15 +57,6 @@ def main():
         print(f"::error::Workspace not found: {workspace}")
         sys.exit(1)
     
-    # Get PR number if available (from GITHUB_REF for pull_request events)
-    pr_number = None
-    github_ref = os.getenv("GITHUB_REF", "")
-    if "/pull/" in github_ref:
-        try:
-            pr_number = int(github_ref.split("/")[-2])
-        except (ValueError, IndexError):
-            pass
-    
     # Determine mode (warn or enforce)
     mode = os.getenv("INPUT_MODE", "warn").lower()
     
@@ -85,16 +76,16 @@ def main():
     effective_mode = mode
     if is_fork and mode == "enforce":
         effective_mode = "warn"
-        print(f"::notice::Fork PR detected - downgrading enforce to warn mode (no write access to fork)")
+        print("::notice::Fork PR detected - downgrading enforce to warn mode (no write access to fork)")
     
     warn_mode = effective_mode == "warn"
     
-    print(f"::group::Fixpoint Scan")
+    print("::group::Fixpoint Scan")
     print(f"Repository: {owner}/{repo_name}")
     print(f"Base branch: {base_branch}")
     print(f"Head ref: {head_ref}")
     print(f"Mode: {effective_mode}" + (f" (downgraded from {mode} - fork PR)" if is_fork and mode == "enforce" else ""))
-    print(f"::endgroup::")
+    print("::endgroup::")
     
     # Setup paths (rules directory = all Semgrep rules)
     rules_path = Path(__file__).parent / "rules"
@@ -118,7 +109,7 @@ def main():
         target_files = None
     print("::endgroup::")
     
-    if target_files and not target_files:
+    if target_files is not None and not target_files:
         print("::notice::No supported files changed or all files ignored")
         # Set status check: PASS (no violations to check)
         if head_sha:

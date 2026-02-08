@@ -152,9 +152,43 @@ def create_fix_comment(
         
         comment_body += "\n### What changed\n\n"
         comment_body += "Applied deterministic fixes:\n\n"
+        
+        # Group findings by file to get descriptions
+        fixes_by_file = {}
+        for finding in findings:
+            file_path = finding.get("path", "")
+            check_id = finding.get("check_id", "").lower()
+            if file_path not in fixes_by_file:
+                fixes_by_file[file_path] = []
+            
+            # Determine fix description based on check_id
+            if "sql" in check_id or "sqli" in check_id:
+                desc = "SQL injection → parameterized query"
+            elif "secret" in check_id or "password" in check_id:
+                desc = "Hardcoded secret → environment variable"
+            elif "xss" in check_id or "safe" in check_id:
+                desc = "XSS → removed unsafe pattern"
+            elif "command" in check_id:
+                desc = "Command injection → safe subprocess"
+            elif "path" in check_id or "traversal" in check_id:
+                desc = "Path traversal → added validation"
+            elif "ssrf" in check_id:
+                desc = "SSRF → added URL validation"
+            elif "eval" in check_id:
+                desc = "eval → safe alternative recommended"
+            elif "innerhtml" in check_id or "dom" in check_id:
+                desc = "DOM XSS → textContent"
+            else:
+                desc = "Security fix applied"
+            
+            fixes_by_file[file_path].append(desc)
+        
         for file_path in files_fixed:
             safe_path = _sanitize_file_path(file_path)
-            comment_body += f"- ✅ `{safe_path}` - Replaced SQL string formatting with parameterized query\n"
+            descriptions = fixes_by_file.get(file_path, ["Security fix applied"])
+            unique_descs = list(dict.fromkeys(descriptions))  # Dedupe preserving order
+            for desc in unique_descs:
+                comment_body += f"- ✅ `{safe_path}` - {desc}\n"
         
         comment_body += "\n### Safety\n\n"
         comment_body += "- ✅ Minimal diff (only security fixes)\n"
@@ -165,7 +199,7 @@ def create_fix_comment(
         comment_body += "\n### How to revert\n\n"
         comment_body += "If you need to revert this fix:\n\n"
         comment_body += "```bash\n"
-        comment_body += f"git revert HEAD\n"
+        comment_body += "git revert HEAD\n"
         comment_body += "git push\n"
         comment_body += "```\n"
         
@@ -322,7 +356,6 @@ def create_error_comment(
         
         # Sanitize inputs
         safe_message = _sanitize_for_markdown(message)
-        safe_error_type = _sanitize_for_markdown(error_type, max_length=50)
         
         comment_body = "## ⚠️ Fixpoint - Action Required\n\n"
         

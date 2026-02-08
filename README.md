@@ -17,6 +17,23 @@ As AI increases PR volume, Fixpoint keeps security debt at zero: every finding g
 
 ---
 
+## Beta Testing (v1.1.0)
+
+We're inviting early users to test Fixpoint before wider release.
+
+| What to expect | Details |
+|----------------|---------|
+| **Stability** | Core flows tested; 133 tests pass. Some edge cases may remain. |
+| **Platforms** | GitHub Action & CLI: Linux, Mac. Semgrep: not supported on Windows. |
+| **Modes** | Start with `mode: warn` — review proposed fixes before enabling enforce. |
+| **Feedback** | Report issues, awkward workflows, or "how do I...?" in [Discussions](https://github.com/IWEBai/fixpoint/discussions) or [Issues](https://github.com/IWEBai/fixpoint/issues). |
+
+**Quick test:** Fork [fixpoint-demo](https://github.com/IWEBai/fixpoint-demo), add the workflow from [Quick Start](#quick-start), open a PR with vulnerable code. Fixpoint will comment or fix.
+
+See [Beta Tester Notes](./docs/BETA_TESTER_NOTES.md) for full release notes and feedback prompts.
+
+---
+
 ## What It Fixes
 
 | Vulnerability | Detection | Auto-Fix |
@@ -329,6 +346,7 @@ See [API Reference](./docs/API_REFERENCE.md) for details.
 - [**iwebai.space**](https://www.iwebai.space) - IWEB website
 - [**r/IWEBai**](https://www.reddit.com/r/IWEBai/) - Community on Reddit
 - [Demo Repository](https://github.com/IWEBai/fixpoint-demo) - Try Fixpoint with vulnerable code examples
+- [**Beta Tester Notes**](./docs/BETA_TESTER_NOTES.md) - Release notes and feedback prompts for testers
 - [Introduction](./docs/INTRODUCTION.md) - Why Fixpoint?
 - [Getting Started](./docs/GETTING_STARTED.md) - Complete setup guide
 - [API Reference](./docs/API_REFERENCE.md) - Webhook API

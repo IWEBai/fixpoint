@@ -60,6 +60,11 @@ def semgrep_scan(
             # All files ignored, return empty results
             return {"results": []}
     
+    # Handle empty target list explicitly
+    if target_files is not None and len(target_files) == 0:
+        # Empty list means no files to scan (e.g. no files changed or all filtered)
+        return {"results": []}
+    
     cmd = [
         "semgrep",
         "--config",
@@ -70,7 +75,11 @@ def semgrep_scan(
     ]
     
     # If target_files provided, scan only those files (PR diff mode)
-    if target_files:
+    if target_files is not None:
+        if not target_files:
+            # Empty list means no files to scan
+            return {"results": []}
+            
         # Semgrep can take multiple file paths
         for file_path in target_files:
             full_path = repo_path / file_path if not Path(file_path).is_absolute() else Path(file_path)

@@ -1,8 +1,6 @@
 """
 Tests for SQL injection fixer.
 """
-import pytest
-from pathlib import Path
 from patcher.fix_sqli import apply_fix_sqli, propose_fix_sqli
 
 
@@ -127,7 +125,7 @@ def get_user(email):
     return cursor.fetchone()
 ''')
         
-        proposal = propose_fix_sqli(temp_repo, "app.py")
+        propose_fix_sqli(temp_repo, "app.py")
         
         # Should be None since no pattern found
         # Note: This may return None or a proposal depending on AST parsing behavior

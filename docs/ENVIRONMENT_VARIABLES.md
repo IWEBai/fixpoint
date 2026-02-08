@@ -98,7 +98,7 @@ HTTP port for the webhook server.
 | Property | Value |
 |----------|-------|
 | Required | No |
-| Default | `5000` |
+| Default | `8000` |
 | Used by | Webhook server |
 
 **Example:**

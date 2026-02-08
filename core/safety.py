@@ -7,7 +7,6 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
-from typing import Optional
 
 
 def compute_fix_idempotency_key(

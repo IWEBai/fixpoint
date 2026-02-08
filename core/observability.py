@@ -4,10 +4,8 @@ Structured logging and correlation IDs for debugging.
 """
 from __future__ import annotations
 
-import json
 import logging
 import uuid
-from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 
 # Configure structured logging with correlation ID support
@@ -69,7 +67,7 @@ def log_webhook_event(
     
     with CorrelationContext(correlation_id):
         logger.info(
-            f"Webhook event received",
+            "Webhook event received",
             extra={
                 "event_type": event_type,
                 "action": action,

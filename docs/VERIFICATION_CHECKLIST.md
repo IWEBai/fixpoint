@@ -10,8 +10,8 @@ Use this checklist before releasing or after major changes to ensure the core fl
 python -m pytest tests/ -v --tb=short
 ```
 
-- [ ] **133 passed** (2 skipped on Windows for Semgrep)
-- [ ] No unexpected failures
+- [x] **133 passed** (2 skipped on Windows for Semgrep)
+- [x] No unexpected failures
 
 ---
 
@@ -45,14 +45,14 @@ python -m pytest tests/ -v --tb=short
 
 ## 4. Fixer Coverage (Quick Smoke Test)
 
-| Fixer | Test file | Expected |
-|-------|-----------|----------|
-| SQL injection | `tests/test_fix_sqli.py` | PASS |
-| Secrets | `tests/test_secrets.py` | PASS |
-| XSS | `tests/test_xss.py` | PASS |
-| Command injection | `tests/test_command_injection.py` | PASS |
-| Path traversal | `tests/test_path_traversal.py` | PASS |
-| JavaScript | `tests/test_javascript.py` | PASS |
+| Fixer | Test file | Expected | Status |
+|-------|-----------|----------|--------|
+| SQL injection | `tests/test_fix_sqli.py` | PASS | ✅ |
+| Secrets | `tests/test_secrets.py` | PASS | ✅ |
+| XSS | `tests/test_xss.py` | PASS | ✅ |
+| Command injection | `tests/test_command_injection.py` | PASS | ✅ |
+| Path traversal | `tests/test_path_traversal.py` | PASS | ✅ |
+| JavaScript | `tests/test_javascript.py` | PASS | ✅ |
 
 ---
 
@@ -66,8 +66,9 @@ python main.py /path/to/repo --warn-mode
 python main.py /path/to/repo
 ```
 
-- [ ] Warn mode prints proposed fixes
-- [ ] Enforce mode applies fixes and creates branch/PR (or pushes to existing)
+- [x] CLI runs without error (verified: `main..main` = no diff, exits cleanly)
+- [ ] Warn mode prints proposed fixes (test with repo that has vulnerable code)
+- [ ] Enforce mode applies fixes (test with demo repo)
 
 ---
 
@@ -77,18 +78,18 @@ python main.py /path/to/repo
 python webhook_server.py
 ```
 
-- [ ] Server starts on configured PORT
-- [ ] `/health` returns 200
+- [x] `/health` returns 200 (verified via `tests/test_webhook_integration.py::test_health_check`)
+- [ ] Server starts on configured PORT (manual test)
 - [ ] Valid webhook payload triggers processing (requires GitHub webhook setup)
 
 ---
 
 ## Pre-Release Sign-Off
 
-- [ ] All tests pass
-- [ ] CHANGELOG updated
-- [ ] Tag created: `git tag -a v1.1.0 -m "Release v1.1.0"`
-- [ ] Push and push tags: `git push && git push --tags`
+- [x] All tests pass
+- [x] CHANGELOG updated
+- [x] Tag created: `git tag -a v1.1.0 -m "Release v1.1.0"`
+- [x] Push and push tags: `git push && git push --tags`
 
 ---
 

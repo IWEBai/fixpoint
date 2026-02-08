@@ -3,8 +3,7 @@ Tests for expanded SQL injection pattern detection.
 Tests multiple variable names, cursor names, and injection patterns.
 """
 import pytest
-from pathlib import Path
-from patcher.ast_utils import find_all_sqli_patterns, SQL_VARIABLE_NAMES, CURSOR_NAMES
+from patcher.ast_utils import find_all_sqli_patterns
 from patcher.fix_sqli import apply_fix_sqli, propose_fix_sqli
 
 

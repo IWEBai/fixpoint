@@ -9,7 +9,6 @@ from typing import Optional, List
 import re
 from patcher.ast_utils import (
     find_all_sqli_patterns,
-    find_sqli_pattern_in_ast,
     SQLInjectionPattern,
 )
 

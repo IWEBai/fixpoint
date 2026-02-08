@@ -7,7 +7,7 @@ import hmac
 import hashlib
 import os
 import importlib
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from pathlib import Path
 
 # Add parent to path for imports

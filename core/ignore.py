@@ -5,9 +5,8 @@ Similar to .gitignore, allows teams to exclude files/directories from scanning.
 from __future__ import annotations
 
 import fnmatch
-import re
 from pathlib import Path
-from typing import List, Set
+from typing import List
 
 
 def read_ignore_file(repo_path: Path) -> List[str]:

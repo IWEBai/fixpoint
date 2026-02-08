@@ -13,8 +13,6 @@ from dotenv import load_dotenv
 from core.scanner import semgrep_scan, get_pr_diff_files_local
 from core.fixer import process_findings
 from core.git_ops import commit_and_push_new_branch, commit_and_push_to_existing_branch, generate_branch_name
-from core.pr_comments import create_warn_comment
-from core.status_checks import set_compliance_status
 from core.ignore import filter_ignored_files
 from github_bot.open_pr import open_or_get_pr
 
@@ -150,26 +148,37 @@ def main():
     # WARN MODE: Propose fixes without applying
     if args.warn_mode:
         print("[4/5] Warn mode: Proposing fixes (not applying)")
-        from patcher.fix_sqli import propose_fix_sqli
+        from core.fixer import _propose_fixer
         
         proposed_fixes = []
         for p in processed:
-            if p.get("finding"):
-                finding = p["finding"]
+            if p.get("finding") and p.get("fixer"):
                 file_path = p["file"]
-                proposal = propose_fix_sqli(repo_path, file_path)
+                fixer_name = p["fixer"]
+                finding = p.get("finding", {})
+                proposal = _propose_fixer(fixer_name, repo_path, file_path, finding)
                 if proposal:
+                    if proposal.get("line", 0) == 0 and finding:
+                        proposal = {
+                            **proposal,
+                            "line": int(finding.get("start", {}).get("line", 0)),
+                        }
+                    proposal["finding"] = finding  # for print fallback
                     proposed_fixes.append(proposal)
         
         if proposed_fixes:
             # Get PR number if available (for CLI, we'll just print)
             print("\n=== Proposed Fixes (Warn Mode) ===\n")
             for fix in proposed_fixes:
-                print(f"File: {fix['file']}:{fix['line']}")
+                line = fix.get("line", 0)
+                if line == 0 and fix.get("finding"):
+                    line = fix.get("finding", {}).get("start", {}).get("line", 0)
+                print(f"File: {fix['file']}:{line}")
                 print(f"Before: {fix['before']}")
                 print(f"After:  {fix['after']}")
-                print(f"Execute before: {fix['exec_before']}")
-                print(f"Execute after:  {fix['exec_after']}")
+                if "exec_before" in fix and "exec_after" in fix:
+                    print(f"Execute before: {fix['exec_before']}")
+                    print(f"Execute after:  {fix['exec_after']}")
                 print()
             
             print("To apply these fixes automatically, run without --warn-mode")

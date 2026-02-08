@@ -10,7 +10,6 @@ import json
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, List, Optional
-from collections import defaultdict
 
 from core.observability import log_processing_result
 

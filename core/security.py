@@ -7,7 +7,6 @@ from __future__ import annotations
 import os
 import hmac
 import hashlib
-import time
 from typing import Optional
 from datetime import datetime, timedelta, timezone
 
@@ -110,8 +109,10 @@ def check_replay_protection(delivery_id: str) -> bool:
     
     # Clean up old entries (simple cleanup - in production use TTL-based store)
     cutoff = now - DELIVERY_ID_TTL
-    _processed_deliveries.clear()  # Simple: clear all (in production, use proper TTL)
-    
+    expired_keys = [k for k, v in _processed_deliveries.items() if v < cutoff]
+    for k in expired_keys:
+        del _processed_deliveries[k]
+
     return False  # New delivery, proceed
 
 
