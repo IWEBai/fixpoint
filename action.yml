@@ -15,6 +15,18 @@ inputs:
     description: "Base branch to compare against for detecting changed files."
     required: false
     default: "main"
+  max_diff_lines:
+    description: "Max lines changed per auto-fix commit (safety rail). Exceeds = no commit."
+    required: false
+    default: "500"
+  test_before_commit:
+    description: "Run tests before committing. If tests fail, no commit."
+    required: false
+    default: "false"
+  test_command:
+    description: "Command to run when test_before_commit is true (e.g. pytest, npm test)."
+    required: false
+    default: "pytest"
 
 outputs:
   violations_found:
@@ -50,6 +62,9 @@ runs:
         INPUT_MODE: ${{ inputs.mode }}
         INPUT_BASE_BRANCH: ${{ inputs.base_branch }}
         FIXPOINT_ACTION_PATH: ${{ github.action_path }}
+        FIXPOINT_MAX_DIFF_LINES: ${{ inputs.max_diff_lines }}
+        FIXPOINT_TEST_BEFORE_COMMIT: ${{ inputs.test_before_commit }}
+        FIXPOINT_TEST_COMMAND: ${{ inputs.test_command }}
       run: python ${{ github.action_path }}/entrypoint.py
       shell: bash
 

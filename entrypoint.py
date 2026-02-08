@@ -13,7 +13,9 @@ from dotenv import load_dotenv
 
 from core.scanner import semgrep_scan, get_pr_diff_files_local
 from core.fixer import process_findings
-from core.git_ops import commit_and_push_to_existing_branch
+from core.git_ops import commit_and_push_to_existing_branch, run_tests
+from core.safety import check_max_diff_lines
+from core.config import load_config
 from core.status_checks import set_compliance_status
 from core.ignore import filter_ignored_files
 
@@ -94,19 +96,20 @@ def main():
     print(f"Mode: {effective_mode}" + (f" (downgraded from {mode} - fork PR)" if is_fork and mode == "enforce" else ""))
     print(f"::endgroup::")
     
-    # Setup paths
-    rules_path = Path(__file__).parent / "rules" / "sql_injection.yaml"
+    # Setup paths (rules directory = all Semgrep rules)
+    rules_path = Path(__file__).parent / "rules"
     results_path = workspace / "semgrep_results.json"
     
     # Get changed files (PR diff mode)
     print("::group::Getting changed files")
     try:
         target_files = get_pr_diff_files_local(workspace, base_branch, head_ref)
-        # Filter to Python files only
-        target_files = [f for f in target_files if f.endswith(".py")]
+        # Filter to supported files (Python + JS/TS)
+        ext_ok = (".py", ".js", ".ts", ".jsx", ".tsx")
+        target_files = [f for f in target_files if f.endswith(ext_ok)]
         # Apply .fixpointignore
         target_files = filter_ignored_files(target_files, workspace)
-        print(f"Changed Python files: {len(target_files)}")
+        print(f"Changed files: {len(target_files)}")
         if target_files:
             print(f"Files: {', '.join(target_files[:5])}{'...' if len(target_files) > 5 else ''}")
     except Exception as e:
@@ -116,7 +119,7 @@ def main():
     print("::endgroup::")
     
     if target_files and not target_files:
-        print("::notice::No Python files changed or all files ignored")
+        print("::notice::No supported files changed or all files ignored")
         # Set status check: PASS (no violations to check)
         if head_sha:
             set_compliance_status(owner, repo_name, head_sha, 0, 0)
@@ -168,6 +171,25 @@ def main():
             set_compliance_status(owner, repo_name, head_sha, violations_found, violations_fixed)
         sys.exit(0)
     
+    # Safety rails: max-diff and optional test run
+    import subprocess
+    subprocess.run(["git", "add", "."], cwd=workspace, check=False, capture_output=True)
+    config = load_config(workspace)
+    ok, added, removed = check_max_diff_lines(workspace, config["max_diff_lines"])
+    if not ok:
+        total = added + removed
+        print(f"::error::Diff too large ({total} lines, max {config['max_diff_lines']}). Not committing.")
+        if head_sha:
+            set_compliance_status(owner, repo_name, head_sha, violations_found, 0)
+        sys.exit(1)
+    if config["test_before_commit"]:
+        success, output = run_tests(workspace, config["test_command"])
+        if not success:
+            print(f"::error::Tests failed before commit: {output[:500]}")
+            if head_sha:
+                set_compliance_status(owner, repo_name, head_sha, violations_found, 0)
+            sys.exit(1)
+
     # Commit and push fixes
     # Use canonical marker [fixpoint] for loop prevention
     print("::group::Committing fixes")

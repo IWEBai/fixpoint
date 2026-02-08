@@ -2,6 +2,7 @@
 # Note: semgrep must be installed separately on Linux/Mac/WSL (not supported on Windows)
 # pip install semgrep  # or: pip install semgrep==1.102.0
 python-dotenv==1.0.1
+PyYAML==6.0.2
 PyGithub==2.5.0
 Flask==3.1.0
 

@@ -72,6 +72,43 @@ def commit_and_push_new_branch(
     return True
 
 
+def run_tests(repo_path: Path, command: str, timeout: int = 300) -> tuple[bool, str]:
+    """
+    Run test command before commit (safety rail).
+    
+    Args:
+        repo_path: Path to repository
+        command: Shell command to run (e.g. "pytest", "npm test")
+        timeout: Max seconds to wait
+    
+    Returns:
+        Tuple of (success, output_or_error_message)
+    """
+    import shlex
+    import subprocess
+    
+    try:
+        parts = shlex.split(command)
+        result = subprocess.run(
+            parts,
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            encoding="utf-8",
+            errors="replace",
+        )
+        if result.returncode == 0:
+            return True, result.stdout or ""
+        return False, result.stderr or result.stdout or f"Exit code {result.returncode}"
+    except subprocess.TimeoutExpired:
+        return False, f"Test command timed out after {timeout}s"
+    except FileNotFoundError:
+        return False, f"Command not found: {command.split()[0] if command else command}"
+    except Exception as e:
+        return False, str(e)
+
+
 def commit_and_push_to_existing_branch(
     repo_path: Path,
     branch_name: str,

@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-02-08
+
+### Added
+
+- **Phase 3A — Command Injection, Path Traversal, SSRF**
+  - **Command injection**: Converts `os.system(cmd)` and `subprocess.run(cmd, shell=True)` to safe `subprocess.run(shlex.split(cmd), shell=False)`.
+  - **Path traversal**: Adds path validation when `os.path.join(base, user_var)` is used; ensures resolved path is under base directory.
+  - **SSRF**: Detection for `requests.get/post` and `urlopen` with dynamic URLs; guidance in comments (deterministic fix deferred to config-driven approach).
+
+- **Phase 3B — JavaScript/TypeScript support**
+  - **eval**: Detection for dangerous `eval()` usage; guidance in warn comments.
+  - **Hardcoded secrets**: Replaces `apiKey = "xxx"` with `process.env.API_KEY`.
+  - **DOM XSS**: Replaces `innerHTML =` with `textContent =` for user-controlled content.
+  - Semgrep rules: `javascript_eval.yaml`, `javascript_secrets.yaml`, `javascript_dom_xss.yaml`.
+  - Scanner and entrypoint now include `.js`, `.ts`, `.jsx`, `.tsx` files.
+
+- **Safety rails** (formalized)
+  - Max-diff threshold: Reject commits when diff exceeds `max_diff_lines` (default 500). Configurable via `.fixpoint.yml` or `FIXPOINT_MAX_DIFF_LINES`.
+  - Optional test run before commit: When `test_before_commit` is enabled, runs `test_command` (default `pytest`) before committing. Skips commit if tests fail.
+  - CWE/OWASP tags in PR comments: Findings now display CWE and OWASP identifiers in warn and fix comments (e.g. `CWE-89 | A03:2021`).
+
+### Changed
+
+- GitHub Action: New inputs `max_diff_lines`, `test_before_commit`, `test_command` for safety rail configuration.
+
 ## [1.0.0] - 2026-01-25
 
 ### Added
@@ -65,9 +90,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 1.1.0 | 2026-02-08 | Phase 3A/3B, safety rails, JS/TS support |
 | 1.0.0 | 2026-01-25 | Initial release |
 
 ---
 
-[Unreleased]: https://github.com/IWEBai/fixpoint/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/IWEBai/fixpoint/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/IWEBai/fixpoint/releases/tag/v1.1.0
 [1.0.0]: https://github.com/IWEBai/fixpoint/releases/tag/v1.0.0

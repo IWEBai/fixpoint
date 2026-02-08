@@ -47,6 +47,33 @@ FIXER_REGISTRY = {
     "markup": "fix_xss",
     "format-html": "fix_xss",
     "format_html": "fix_xss",
+
+    # Command injection patterns
+    "command-injection": "fix_command_injection",
+    "command_injection": "fix_command_injection",
+    "os-system": "fix_command_injection",
+    "subprocess-shell": "fix_command_injection",
+
+    # Path traversal patterns
+    "path-traversal": "fix_path_traversal",
+    "path_traversal": "fix_path_traversal",
+
+    # SSRF patterns
+    "ssrf": "fix_ssrf",
+    "requests-get": "fix_ssrf",
+    "requests-post": "fix_ssrf",
+    "urlopen": "fix_ssrf",
+
+    # JavaScript/TypeScript patterns
+    "javascript-eval": "fix_js_eval",
+    "typescript-eval": "fix_js_eval",
+    "eval-dangerous": "fix_js_eval",
+    "javascript-hardcoded-secret": "fix_js_secrets",
+    "typescript-hardcoded-secret": "fix_js_secrets",
+    "javascript-dom-xss": "fix_js_dom_xss",
+    "typescript-dom-xss": "fix_js_dom_xss",
+    "dom-xss-innerhtml": "fix_js_dom_xss",
+    "dom-xss-document-write": "fix_js_dom_xss",
 }
 
 
@@ -93,6 +120,30 @@ def _apply_fixer(fixer_name: str, repo_path: Path, target_relpath: str) -> bool:
         elif fixer_name == "fix_xss":
             from patcher.fix_xss import apply_fix_xss
             return apply_fix_xss(repo_path, target_relpath)
+        
+        elif fixer_name == "fix_command_injection":
+            from patcher.fix_command_injection import apply_fix_command_injection
+            return apply_fix_command_injection(repo_path, target_relpath)
+        
+        elif fixer_name == "fix_path_traversal":
+            from patcher.fix_path_traversal import apply_fix_path_traversal
+            return apply_fix_path_traversal(repo_path, target_relpath)
+        
+        elif fixer_name == "fix_ssrf":
+            from patcher.fix_ssrf import apply_fix_ssrf
+            return apply_fix_ssrf(repo_path, target_relpath)
+        
+        elif fixer_name == "fix_js_eval":
+            from patcher.fix_javascript import apply_fix_js_eval
+            return apply_fix_js_eval(repo_path, target_relpath)
+        
+        elif fixer_name == "fix_js_secrets":
+            from patcher.fix_javascript import apply_fix_js_secrets
+            return apply_fix_js_secrets(repo_path, target_relpath)
+        
+        elif fixer_name == "fix_js_dom_xss":
+            from patcher.fix_javascript import apply_fix_js_dom_xss
+            return apply_fix_js_dom_xss(repo_path, target_relpath)
         
         else:
             print(f"Unknown fixer: {fixer_name}")
@@ -180,6 +231,9 @@ def get_supported_vulnerability_types() -> list[str]:
         "SQL Injection (Python f-strings, concatenation, .format(), % formatting)",
         "Hardcoded Secrets (passwords, API keys, tokens, database credentials)",
         "XSS (Django/Jinja2 |safe filter, mark_safe(), autoescape off)",
+        "Command Injection (os.system, subprocess with shell=True)",
+        "Path Traversal (os.path.join with user input)",
+        "SSRF (requests.get/post, urlopen with dynamic URL) — detection + guidance",
     ]
 
 
@@ -208,5 +262,23 @@ def get_fixer_info() -> dict:
             "description": "Removes unsafe |safe filters and mark_safe() calls",
             "patterns": ["xss", "mark-safe", "safe-filter", "autoescape-off"],
             "languages": ["python", "html/jinja2"],
+        },
+        "fix_command_injection": {
+            "name": "Command Injection Fixer",
+            "description": "Converts os.system and subprocess+shell=True to safe subprocess",
+            "patterns": ["command-injection", "os-system", "subprocess-shell"],
+            "languages": ["python"],
+        },
+        "fix_path_traversal": {
+            "name": "Path Traversal Fixer",
+            "description": "Adds path validation for os.path.join with user input",
+            "patterns": ["path-traversal"],
+            "languages": ["python"],
+        },
+        "fix_ssrf": {
+            "name": "SSRF Fixer",
+            "description": "Detection + guidance for requests.get/post, urlopen",
+            "patterns": ["ssrf", "requests-get", "requests-post", "urlopen"],
+            "languages": ["python"],
         },
     }

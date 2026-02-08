@@ -1,0 +1,16 @@
+# .fixpoint.yml - Fixpoint configuration
+# Copy to .fixpoint.yml in your repo root to customize.
+
+# Maximum lines changed in a single auto-fix commit.
+# If the diff exceeds this, Fixpoint will not commit (safety rail).
+# Default: 500
+max_diff_lines: 500
+
+# Run tests before committing fixes. If tests fail, no commit is made.
+# Default: false
+test_before_commit: false
+
+# Command to run when test_before_commit is true.
+# Examples: "pytest", "npm test", "make test"
+# Default: "pytest"
+test_command: "pytest"

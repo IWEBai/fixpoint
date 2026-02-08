@@ -1,0 +1,14 @@
+rules:
+  # os.path.join with variable then open/read
+  - id: python-path-traversal-join
+    message: Potential path traversal via os.path.join with user input
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      confidence: high
+      cwe: "CWE-22"
+      owasp: "A01:2021"
+    patterns:
+      - pattern: os.path.join($BASE, $VAR)
+      - pattern: os.path.join($BASE, $VAR, ...)

@@ -1,0 +1,27 @@
+rules:
+  - id: javascript-eval-dangerous
+    message: Dangerous use of eval() - can execute arbitrary code (code injection)
+    severity: ERROR
+    languages: [javascript]
+    metadata:
+      category: security
+      confidence: high
+      cwe: "CWE-95"
+      owasp: "A03:2021"
+    patterns:
+      - pattern: eval($EXPR)
+      - pattern: eval("...")
+      - pattern: eval($VAR)
+
+  - id: typescript-eval-dangerous
+    message: Dangerous use of eval() - can execute arbitrary code (code injection)
+    severity: ERROR
+    languages: [typescript]
+    metadata:
+      category: security
+      confidence: high
+      cwe: "CWE-95"
+      owasp: "A03:2021"
+    patterns:
+      - pattern: eval($EXPR)
+      - pattern: eval("...")

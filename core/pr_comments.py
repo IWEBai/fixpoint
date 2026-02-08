@@ -140,9 +140,15 @@ def create_fix_comment(
             start_line = int(finding.get("start", {}).get("line", 0))
             message = _sanitize_for_markdown(finding.get("extra", {}).get("message", "Security violation"))
             check_id = _sanitize_for_markdown(finding.get("check_id", ""), max_length=100)
+            metadata = finding.get("extra", {}).get("metadata", {})
+            cwe = metadata.get("cwe", "")
+            owasp = metadata.get("owasp", "")
             
             comment_body += f"- **{file_path}:{start_line}** - {message}\n"
             comment_body += f"  - Rule: `{check_id}`\n"
+            if cwe or owasp:
+                tags = " | ".join(t for t in [cwe, owasp] if t)
+                comment_body += f"  - CWE/OWASP: `{tags}`\n"
         
         comment_body += "\n### What changed\n\n"
         comment_body += "Applied deterministic fixes:\n\n"
@@ -232,9 +238,15 @@ def create_warn_comment(
             start_line = int(finding.get("start", {}).get("line", 0))
             message = _sanitize_for_markdown(finding.get("extra", {}).get("message", "Security violation"))
             check_id = _sanitize_for_markdown(finding.get("check_id", ""), max_length=100)
+            metadata = finding.get("extra", {}).get("metadata", {})
+            cwe = metadata.get("cwe", "")
+            owasp = metadata.get("owasp", "")
             
             comment_body += f"- **{file_path}:{start_line}** - {message}\n"
             comment_body += f"  - Rule: `{check_id}`\n"
+            if cwe or owasp:
+                tags = " | ".join(t for t in [cwe, owasp] if t)
+                comment_body += f"  - CWE/OWASP: `{tags}`\n"
         
         comment_body += "\n### Proposed fixes\n\n"
         for fix in proposed_fixes:

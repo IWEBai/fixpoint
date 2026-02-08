@@ -19,12 +19,18 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from core.scanner import semgrep_scan, get_pr_diff_files
 from core.fixer import process_findings
-from core.git_ops import commit_and_push_to_existing_branch, setup_git_identity
+from core.git_ops import (
+    commit_and_push_to_existing_branch,
+    setup_git_identity,
+    run_tests,
+)
 from core.safety import (
     compute_fix_idempotency_key,
     check_loop_prevention,
     check_confidence_gating,
+    check_max_diff_lines,
 )
+from core.config import load_config
 from core.security import validate_webhook_request, is_allowed_pr_action, is_repo_allowed
 from core.pr_comments import create_fix_comment, create_error_comment, create_warn_comment
 from core.status_checks import set_compliance_status
@@ -254,8 +260,8 @@ def process_pr_webhook(payload: dict, correlation_id: str) -> dict:
                 log_processing_result(correlation_id, "all_ignored", "All files ignored by .fixpointignore")
                 return {"status": "all_ignored", "message": "All files ignored by .fixpointignore"}
             
-            # Scan changed files
-            rules_path = Path(__file__).parent.parent / "rules" / "sql_injection.yaml"
+            # Scan changed files (rules directory = all Semgrep rules)
+            rules_path = Path(__file__).parent.parent / "rules"
             results_path = Path(temp_dir) / "semgrep_results.json"
             
             data = semgrep_scan(repo_path, rules_path, results_path, python_files, apply_ignore=False)  # Already filtered above
@@ -414,6 +420,76 @@ def process_pr_webhook(payload: dict, correlation_id: str) -> dict:
             
             # Setup git identity before committing
             setup_git_identity(repo_path)
+            
+            # Stage changes for safety checks
+            subprocess.run(
+                ["git", "add", "."],
+                cwd=repo_path,
+                check=False,
+                timeout=GIT_TIMEOUT,
+                capture_output=True,
+            )
+            
+            # SAFETY RAIL: Max-diff threshold
+            config = load_config(repo_path)
+            ok, added, removed = check_max_diff_lines(repo_path, config["max_diff_lines"])
+            if not ok:
+                total = added + removed
+                create_error_comment(
+                    owner,
+                    repo_name,
+                    pr_number,
+                    "max_diff_exceeded",
+                    f"Diff too large ({total} lines, max {config['max_diff_lines']}). "
+                    "Fixpoint will not auto-commit. Apply fixes manually or increase max_diff_lines.",
+                )
+                set_compliance_status(
+                    owner,
+                    repo_name,
+                    head_sha,
+                    len(findings_to_process),
+                    0,
+                    pr_url,
+                )
+                log_processing_result(
+                    correlation_id,
+                    "max_diff_exceeded",
+                    f"Diff {total} lines exceeds max {config['max_diff_lines']}",
+                )
+                return {
+                    "status": "max_diff_exceeded",
+                    "message": f"Diff too large ({total} lines)",
+                }
+            
+            # SAFETY RAIL: Optional test run before commit
+            if config["test_before_commit"]:
+                success, test_output = run_tests(repo_path, config["test_command"])
+                if not success:
+                    create_error_comment(
+                        owner,
+                        repo_name,
+                        pr_number,
+                        "tests_failed",
+                        f"Tests failed before commit. Fixpoint did not push. Output: {test_output[:500]}",
+                    )
+                    set_compliance_status(
+                        owner,
+                        repo_name,
+                        head_sha,
+                        len(findings_to_process),
+                        0,
+                        pr_url,
+                    )
+                    log_processing_result(
+                        correlation_id,
+                        "tests_failed",
+                        "Tests failed before commit",
+                        {"output": test_output[:200]},
+                    )
+                    return {
+                        "status": "tests_failed",
+                        "message": "Tests failed before commit",
+                    }
             
             # Commit and push to existing PR branch
             # Use canonical marker [fixpoint] for loop prevention

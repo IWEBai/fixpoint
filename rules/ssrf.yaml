@@ -1,0 +1,38 @@
+rules:
+  # requests with dynamic URL
+  - id: python-ssrf-requests-get
+    message: Potential SSRF via requests.get with dynamic URL
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      confidence: high
+      cwe: "CWE-918"
+      owasp: "A10:2021"
+    patterns:
+      - pattern: requests.get($URL)
+      - pattern: requests.get($URL, ...)
+
+  - id: python-ssrf-requests-post
+    message: Potential SSRF via requests.post with dynamic URL
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      confidence: high
+      cwe: "CWE-918"
+      owasp: "A10:2021"
+    patterns:
+      - pattern: requests.post($URL, ...)
+
+  - id: python-ssrf-urlopen
+    message: Potential SSRF via urllib.request.urlopen with dynamic URL
+    severity: ERROR
+    languages: [python]
+    metadata:
+      category: security
+      confidence: high
+      cwe: "CWE-918"
+      owasp: "A10:2021"
+    patterns:
+      - pattern: urllib.request.urlopen($URL)

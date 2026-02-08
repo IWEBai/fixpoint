@@ -144,6 +144,79 @@ def has_recent_bot_commit(repo_path: Path, max_commits: int = 5) -> bool:
     return False
 
 
+def get_diff_stats(repo_path: Path) -> tuple[int, int]:
+    """
+    Get current diff stats (lines added, lines removed).
+    
+    Args:
+        repo_path: Path to repository
+    
+    Returns:
+        Tuple of (lines_added, lines_removed)
+    """
+    import subprocess
+    
+    try:
+        result = subprocess.run(
+            ["git", "diff", "--numstat", "--cached"],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        added = 0
+        removed = 0
+        for line in result.stdout.strip().split("\n"):
+            if not line.strip():
+                continue
+            parts = line.split("\t")
+            if len(parts) >= 2:
+                try:
+                    added += int(parts[0]) if parts[0] != "-" else 0
+                    removed += int(parts[1]) if parts[1] != "-" else 0
+                except ValueError:
+                    pass
+        # If no staged changes, check unstaged (for cases where we haven't staged yet)
+        if added == 0 and removed == 0:
+            result = subprocess.run(
+                ["git", "diff", "--numstat"],
+                cwd=repo_path,
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            for line in result.stdout.strip().split("\n"):
+                if not line.strip():
+                    continue
+                parts = line.split("\t")
+                if len(parts) >= 2:
+                    try:
+                        added += int(parts[0]) if parts[0] != "-" else 0
+                        removed += int(parts[1]) if parts[1] != "-" else 0
+                    except ValueError:
+                        pass
+        return added, removed
+    except Exception:
+        return 0, 0
+
+
+def check_max_diff_lines(repo_path: Path, max_lines: int) -> tuple[bool, int, int]:
+    """
+    Check if the current diff exceeds max_lines (safety rail).
+    
+    Args:
+        repo_path: Path to repository
+        max_lines: Maximum allowed total lines changed (added + removed)
+    
+    Returns:
+        Tuple of (ok, lines_added, lines_removed).
+        ok is True if diff is within limit, False if too large.
+    """
+    added, removed = get_diff_stats(repo_path)
+    total = added + removed
+    return (total <= max_lines, added, removed)
+
+
 def check_confidence_gating(finding: dict) -> bool:
     """
     Gate fixes based on confidence level.

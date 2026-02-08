@@ -219,6 +219,52 @@ Same as `FIXPOINT_MODE`.
     mode: warn
 ```
 
+### FIXPOINT_MAX_DIFF_LINES
+
+Maximum lines changed allowed per auto-fix commit (safety rail). If exceeded, Fixpoint will not commit.
+
+| Property | Value |
+|----------|-------|
+| Required | No |
+| Default | `500` |
+| Used by | Webhook server, GitHub Action |
+
+**Example:**
+```bash
+FIXPOINT_MAX_DIFF_LINES=300
+```
+
+### FIXPOINT_TEST_BEFORE_COMMIT
+
+If set, run tests before committing fixes. Commit is skipped if tests fail.
+
+| Property | Value |
+|----------|-------|
+| Required | No |
+| Default | `false` |
+| Values | `true`, `false`, `1`, `0` |
+| Used by | Webhook server, GitHub Action |
+
+**Example:**
+```bash
+FIXPOINT_TEST_BEFORE_COMMIT=true
+```
+
+### FIXPOINT_TEST_COMMAND
+
+Command to run when `FIXPOINT_TEST_BEFORE_COMMIT` is enabled (e.g. `pytest`, `npm test`).
+
+| Property | Value |
+|----------|-------|
+| Required | No |
+| Default | `pytest` |
+| Used by | Webhook server, GitHub Action |
+
+**Example:**
+```bash
+FIXPOINT_TEST_COMMAND=pytest
+```
+
 ### INPUT_BASE_BRANCH
 
 Base branch to compare against.

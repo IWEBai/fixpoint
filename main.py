@@ -48,17 +48,18 @@ def process_repo_scan(
             raise ValueError("base_ref and head_ref required for PR mode")
         print(f"[1/5] Scanning PR diff: {base_ref}..{head_ref}")
         target_files = get_pr_diff_files_local(repo_path, base_ref, head_ref)
-        # Filter to Python files only (Phase 1 limitation)
-        target_files = [f for f in target_files if f.endswith(".py")]
+        # Filter to supported files (Python + JS/TS)
+        ext_ok = (".py", ".js", ".ts", ".jsx", ".tsx")
+        target_files = [f for f in target_files if f.endswith(ext_ok)]
         if not target_files:
-            print("No Python files changed in PR diff.")
+            print("No supported files changed in PR diff.")
             return False, []
         # Apply .fixpointignore
         target_files = filter_ignored_files(target_files, repo_path)
         if not target_files:
             print("All files ignored by .fixpointignore.")
             return False, []
-        print(f"Changed Python files: {len(target_files)}")
+        print(f"Changed files: {len(target_files)}")
     else:
         print(f"[1/5] Scanning repository for compliance violations: {repo_path}")
     
@@ -130,7 +131,7 @@ def main():
     if not repo_path.exists():
         raise FileNotFoundError(f"Repo path does not exist: {repo_path}")
     
-    rules_path = Path(__file__).parent / "rules" / "sql_injection.yaml"
+    rules_path = Path(__file__).parent / "rules"
     results_path = Path("semgrep_results.json")
     
     # Process scan

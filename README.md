@@ -2,9 +2,13 @@
 
 **Auto-fix security vulnerabilities in your PRs.**
 
-Fixpoint automatically detects and fixes security vulnerabilities in your pull requests, reducing time-to-merge from days to minutes.
+Fixpoint is a deterministic security patch bot that enforces compliance at merge time—so security findings become merged fixes, not backlog.
 
-[![Tests](https://img.shields.io/badge/tests-119%20passed-brightgreen)](https://github.com/IWEBai/fixpoint)
+As AI increases PR volume, Fixpoint keeps security debt at zero: every finding gets a fix, every fix gets merged.
+
+**Positioning:** *The fixed point in your workflow where security issues are detected and corrected before merge—no AI, no wait, no backlog.*
+
+[![Tests](https://img.shields.io/badge/tests-133%20passed-brightgreen)](https://github.com/IWEBai/fixpoint)
 [![Python](https://img.shields.io/badge/python-3.12+-blue)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 [![Marketplace](https://img.shields.io/badge/GitHub-Marketplace-blue)](https://github.com/marketplace/actions/fixpoint-auto-fix-security-vulnerabilities)
@@ -21,8 +25,21 @@ Fixpoint automatically detects and fixes security vulnerabilities in your pull r
 | **Hardcoded Secrets** | Passwords, API keys, tokens, database URIs | ✅ `os.environ.get()` |
 | **XSS (Templates)** | `\|safe` filter, `autoescape off` | ✅ Removes unsafe patterns |
 | **XSS (Python)** | `mark_safe()`, `SafeString()` | ✅ Replaces with `escape()` |
+| **Command Injection** | `os.system()`, `subprocess` with `shell=True` | ✅ List-based `subprocess` |
+| **Path Traversal** | `os.path.join` with user input | ✅ Path validation |
+| **SSRF** | `requests.get()`, `urlopen` with dynamic URL | ⚠️ Detection + guidance |
+| **JS/TS eval** | `eval()` with user input | ⚠️ Detection + guidance |
+| **JS/TS secrets** | `apiKey = "xxx"` | ✅ `process.env.API_KEY` |
+| **JS/TS DOM XSS** | `innerHTML =` with user input | ✅ `textContent =` |
 
-**Philosophy:** Deterministic-first. Same input → same output. No AI hallucinations.
+---
+
+## Philosophy
+
+- **Deterministic-first:** Same input → same output. No AI hallucinations.
+- **No AI/LLM for fixes:** All fixes are rule-based and auditable.
+- **Trust through transparency:** Start in warn mode, graduate to enforce when ready.
+- **Safety over speed:** Max-diff limits, optional test run, CWE/OWASP tags in every finding.
 
 ---
 
@@ -159,7 +176,37 @@ Now PRs with security issues can't be merged until fixed.
 
 ---
 
-## Ignore Files
+## Configuration
+
+### Repo Config (`.fixpoint.yml`)
+
+Create `.fixpoint.yml` in your repo root to customize safety rails:
+
+```yaml
+# Max lines changed per auto-fix commit (safety rail)
+max_diff_lines: 500
+
+# Run tests before committing fixes
+test_before_commit: false
+test_command: "pytest"
+```
+
+Or use env vars: `FIXPOINT_MAX_DIFF_LINES`, `FIXPOINT_TEST_BEFORE_COMMIT`, `FIXPOINT_TEST_COMMAND`.
+
+**GitHub Action** — Pass as inputs:
+
+```yaml
+- uses: IWEBai/fixpoint@v1
+  with:
+    mode: warn
+    max_diff_lines: "500"
+    test_before_commit: "true"
+    test_command: "pytest"
+```
+
+PR comments include **CWE/OWASP tags** (e.g. `CWE-89 | A03:2021`) for each finding.
+
+### Ignore Files
 
 Create `.fixpointignore` in your repo root:
 

@@ -1,0 +1,40 @@
+rules:
+  - id: javascript-dom-xss-innerhtml
+    message: DOM XSS via innerHTML - user input can execute scripts
+    severity: ERROR
+    languages: [javascript]
+    metadata:
+      category: security
+      confidence: high
+      cwe: "CWE-79"
+      owasp: "A03:2021"
+    patterns:
+      - pattern: $EL.innerHTML = $VAL
+      - pattern: $EL.innerHTML = $VAR + ...
+      - pattern: document.getElementById(...).innerHTML = ...
+
+  - id: javascript-dom-xss-document-write
+    message: DOM XSS via document.write - can inject scripts
+    severity: ERROR
+    languages: [javascript]
+    metadata:
+      category: security
+      confidence: high
+      cwe: "CWE-79"
+      owasp: "A03:2021"
+    patterns:
+      - pattern: document.write($VAL)
+      - pattern: document.writeln($VAL)
+
+  - id: typescript-dom-xss-innerhtml
+    message: DOM XSS via innerHTML - user input can execute scripts
+    severity: ERROR
+    languages: [typescript]
+    metadata:
+      category: security
+      confidence: high
+      cwe: "CWE-79"
+      owasp: "A03:2021"
+    patterns:
+      - pattern: $EL.innerHTML = $VAL
+      - pattern: document.getElementById(...).innerHTML = ...

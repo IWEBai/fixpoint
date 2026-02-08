@@ -2,6 +2,22 @@
 
 **Stop waiting days for security reviews. Start shipping in minutes.**
 
+Fixpoint is a deterministic security patch bot that enforces compliance at merge time—so security findings become merged fixes, not backlog. As AI increases PR volume, Fixpoint keeps security debt at zero.
+
+**Positioning:** *The fixed point in your workflow where security issues are detected and corrected before merge—no AI, no wait, no backlog.*
+
+---
+
+## 2026 Product Promise
+
+We commit to:
+
+- **Deterministic fixes only** — No AI/LLM for remediation. Same input → same output.
+- **Python + JavaScript/TypeScript** — SQLi, secrets, XSS, command injection, path traversal, SSRF, eval, DOM XSS.
+- **Safety rails** — Max-diff limits, optional test run before commit, CWE/OWASP tags in PR comments.
+- **Warn then enforce** — Start with comments, graduate to auto-commit when you trust the tool.
+- **Full audit trail** — Every fix is a Git commit. No black boxes.
+
 ---
 
 ## The Problem
@@ -58,10 +74,20 @@ Unlike AI-powered tools that "suggest" fixes, Fixpoint applies **rule-based tran
 | Hardcoded Secrets | Replaces with `os.environ.get()` |
 | XSS in Templates | Removes unsafe `\|safe` filters |
 | XSS in Python | Replaces `mark_safe()` with `escape()` |
+| Command Injection | Converts to list-based `subprocess` |
+| Path Traversal | Adds path validation |
 
 **Same input → Same output. Every time.**
 
 No LLM randomness. No "it worked last time but not this time." Just predictable, auditable fixes.
+
+### Philosophy
+
+- **Deterministic-first:** Same input → same output. No AI hallucinations.
+- **No AI/LLM for fixes:** All fixes are rule-based and auditable.
+- **Trust through transparency:** Start in warn mode, graduate to enforce when ready.
+- **Safety over speed:** Max-diff limits, optional test run, CWE/OWASP tags in every finding.
+- **Will not:** Auto-merge PRs, fix arbitrary bugs, refactor code, or generate creative fixes.
 
 ### 2. Trust-First Approach
 
@@ -231,9 +257,9 @@ migrations/
 
 ### Does it work with my language?
 
-Currently supports **Python** with Django/Flask/Jinja2 templates.
+Currently supports **Python** (Django/Flask/Jinja2) and **JavaScript/TypeScript**.
 
-Coming soon: JavaScript/TypeScript, Go, Java, Ruby.
+Coming soon: Go, Java, Ruby.
 
 ### Is it free?
 
@@ -254,10 +280,9 @@ docker run -p 8000:8000 fixpoint
 
 We're actively developing:
 
-- **More Languages**: JavaScript, TypeScript, Go, Java
-- **More Vulnerability Types**: SSRF, Path Traversal, Command Injection
+- **More Languages**: Go, Java, Ruby
 - **IDE Integration**: Fix vulnerabilities before you commit
-- **Enterprise Features**: SSO, audit logs, custom rules
+- **Enterprise Features**: SSO, audit logs, custom rules (see Fixpoint Cloud/Enterprise)
 
 ---
 
