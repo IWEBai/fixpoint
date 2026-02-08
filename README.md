@@ -351,6 +351,7 @@ MIT License - See [LICENSE](./LICENSE) for details.
 |-----------------|-----|
 | **Know who's using it** | Reply in [**"Who's using Fixpoint?"**](https://github.com/IWEBai/fixpoint/discussions/categories/whos-using-fixpoint) with your company/repo (optional). |
 | **Get your feedback** | Open an [**Issue**](https://github.com/IWEBai/fixpoint/issues) or [**Discussion**](https://github.com/IWEBai/fixpoint/discussions) — bugs, feature ideas, or "how do I...?" |
+| **Help us build** | **Would you pay for a hosted version?** What would make it worth it? [Reply here](https://github.com/IWEBai/fixpoint/discussions) — your input shapes our roadmap. |
 | **Offer you more** | Need hosted Fixpoint (SaaS) or enterprise support? [**Get in touch**](https://github.com/IWEBai/fixpoint/discussions/categories/general) — we're building paid options. |
 
 ---
