@@ -1,5 +1,5 @@
 name: "Fixpoint - Auto-Fix Security Vulnerabilities"
-description: "Auto-fix SQL injection, hardcoded secrets, and XSS in your PRs. Deterministic fixes, no AI."
+description: "Auto-fix SQLi, secrets, XSS, command injection, path traversal in Python + JS/TS. Deterministic, no AI."
 author: "IWEB"
 
 inputs:
@@ -67,6 +67,17 @@ runs:
         FIXPOINT_TEST_COMMAND: ${{ inputs.test_command }}
       run: python ${{ github.action_path }}/entrypoint.py
       shell: bash
+
+    - name: Upload Fixpoint artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: fixpoint-artifacts
+        if-no-files-found: ignore
+        path: |
+          patch-plan.json
+          findings.json
+          fixpoint-results.sarif.json
 
 branding:
   icon: "shield"

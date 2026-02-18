@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fixpoint – Auto-fix security vulnerabilities in your PRs</title>
+  <style>
+    :root { --bg: #0d1117; --fg: #e6edf3; --muted: #8b949e; --accent: #58a6ff; --green: #3fb950; }
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--fg); line-height: 1.6; margin: 0; padding: 3rem max(1rem, 10vw); }
+    .container { max-width: 640px; margin-inline: auto; }
+    h1 { font-size: 1.75rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .tagline { color: var(--muted); font-size: 1.1rem; margin-bottom: 2rem; }
+    .badge { display: inline-block; background: rgba(63, 185, 80, 0.15); color: var(--green); padding: 0.25rem 0.6rem; border-radius: 999px; font-size: 0.85rem; margin-bottom: 1.5rem; }
+    .cta { display: inline-block; background: var(--accent); color: var(--bg); padding: 0.75rem 1.5rem; border-radius: 6px; font-weight: 600; text-decoration: none; margin-bottom: 2rem; }
+    .cta:hover { filter: brightness(1.1); }
+    ul { color: var(--muted); padding-left: 1.25rem; }
+    footer { margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.9rem; color: var(--muted); }
+    footer a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <span class="badge">Free beta for early adopters</span>
+    <h1>Auto-fix security vulnerabilities in your PRs</h1>
+    <p class="tagline">Deterministic security patches. No AI hallucinations. Every finding gets a fix.</p>
+    <a href="https://github.com/apps/fixpoint-security/installations/new" class="cta">Install Fixpoint</a>
+
+    <h2 style="font-size: 1rem; margin-top: 2rem;">What it fixes</h2>
+    <ul>
+      <li>SQL injection → parameterized queries</li>
+      <li>Hardcoded secrets → environment variables</li>
+      <li>XSS, command injection, path traversal</li>
+      <li>Rule-based fixes, fully auditable</li>
+    </ul>
+
+    <footer>
+      <a href="/dashboard">Dashboard</a> · <a href="mailto:support@fixpoint.dev">Support</a> · <a href="/privacy">Privacy Policy</a>
+    </footer>
+  </div>
+</body>
+</html>

@@ -4,7 +4,6 @@ Tests for path traversal fixer.
 from __future__ import annotations
 
 import pytest
-from pathlib import Path
 
 from patcher.fix_path_traversal import apply_fix_path_traversal, propose_fix_path_traversal
 

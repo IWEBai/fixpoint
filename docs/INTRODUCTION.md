@@ -71,11 +71,13 @@ Unlike AI-powered tools that "suggest" fixes, Fixpoint applies **rule-based tran
 | Vulnerability | Fix Applied |
 |---------------|-------------|
 | SQL Injection | Converts to parameterized queries |
-| Hardcoded Secrets | Replaces with `os.environ.get()` |
+| Hardcoded Secrets | Replaces with `os.environ.get()` / `process.env` |
 | XSS in Templates | Removes unsafe `\|safe` filters |
 | XSS in Python | Replaces `mark_safe()` with `escape()` |
 | Command Injection | Converts to list-based `subprocess` |
 | Path Traversal | Adds path validation |
+| JS/TS Secrets | Replaces with `process.env.API_KEY` |
+| JS/TS DOM XSS | Replaces `innerHTML` with `textContent` |
 
 **Same input → Same output. Every time.**
 
@@ -183,9 +185,9 @@ Reduce PR cycle time. Fewer security-related re-reviews means faster deployments
 ┌─────────────────────────────────────────────────────────┐
 │  1. SCAN                                                │
 │     Semgrep + Custom AST Analysis                       │
-│     - SQL Injection patterns                            │
-│     - Hardcoded secrets                                 │
-│     - XSS vulnerabilities                               │
+│     - SQL injection, secrets, XSS (Python)              │
+│     - Command injection, path traversal, SSRF (Python)  │
+│     - eval, secrets, DOM XSS (JavaScript/TypeScript)   │
 └─────────────────────────────────────────────────────────┘
                           │
                           ▼
@@ -243,6 +245,8 @@ No. Fixpoint only makes **safe, deterministic transformations**:
 - SQL queries become parameterized (same functionality, secure)
 - Secrets become environment variable lookups (same functionality, secure)
 - XSS filters are removed (Django/Jinja2 auto-escapes by default)
+- Command execution becomes list-based subprocess (same behavior, secure)
+- Path traversal adds validation (rejects paths outside base directory)
 
 ### What if I don't want a fix applied?
 

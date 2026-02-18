@@ -1,12 +1,22 @@
 # .fixpoint.yml - Fixpoint configuration
 # Copy to .fixpoint.yml in your repo root to customize.
 
+# Safety rails
+# ---------------------------------
+
 # Maximum lines changed in a single auto-fix commit.
 # If the diff exceeds this, Fixpoint will not commit (safety rail).
 # Default: 500
 max_diff_lines: 500
 
-# Run tests before committing fixes. If tests fail, no commit is made.
+# Maximum number of files that Fixpoint is allowed to modify
+# in a single run. This is an additional safety rail to keep
+# auto-fix scope small and reviewable.
+# Default: 10
+max_files_changed: 10
+
+# Run tests before committing fixes. If tests fail, Fixpoint will
+# automatically create a rollback commit (git revert) and push it.
 # Default: false
 test_before_commit: false
 
@@ -14,3 +24,148 @@ test_before_commit: false
 # Examples: "pytest", "npm test", "make test"
 # Default: "pytest"
 test_command: "pytest"
+
+# Maximum wall-clock runtime for a single Fixpoint run (seconds).
+# If exceeded, Fixpoint degrades to "report only" mode (no fixes).
+# Default: 90
+max_runtime_seconds: 90
+
+# Sensitive paths that are allowed to be auto-fixed, even though
+# they look like high-risk areas (e.g. migrations/, infra/, auth/).
+# By default, Fixpoint will *block* auto-commits that touch paths
+# under migrations/, infra/, infrastructure/, auth/, security/.
+#
+# Example:
+# sensitive_paths_allowlist:
+#   - "migrations/0001_initial.py"
+#   - "infra/safe_script.py"
+sensitive_paths_allowlist: []
+
+# Whether Fixpoint is allowed to change dependency / lock files.
+# This includes:
+#   - requirements.txt, pyproject.toml, Pipfile, Pipfile.lock
+#   - package.json, package-lock.json, yarn.lock, pnpm-lock.yaml
+#
+# Default: false (safer for most teams)
+allow_dependency_changes: false
+
+
+# Rule configuration
+# ---------------------------------
+
+rules:
+  # Optional allow-list of rule IDs that Fixpoint should consider for auto-fix.
+  # If omitted or empty, all supported rules are considered.
+  # Rule IDs are matched by substring (e.g., "sql-injection" matches
+  # "custom.sql-injection-fstring").
+  #
+  # Supported rule patterns:
+  #   - sql-injection, sqli, sql_injection
+  #   - hardcoded-secret, hardcoded-password, hardcoded_secret
+  #   - xss, mark-safe, safe-filter, autoescape-off
+  #   - command-injection, os-system, subprocess-shell
+  #   - path-traversal, path_traversal
+  #   - ssrf, requests-get, requests-post, urlopen
+  #   - javascript-eval, typescript-eval, eval-dangerous
+  #   - javascript-hardcoded-secret, typescript-hardcoded-secret
+  #   - javascript-dom-xss, typescript-dom-xss, dom-xss-innerhtml
+  #
+  # Example:
+  #   enabled: ["sql-injection", "hardcoded-secret", "xss"]
+  #
+  # To disable all auto-fix (report only):
+  #   enabled: []
+  enabled: []
+
+  # Per-rule enforcement mode. Overrides global mode on a per-rule basis.
+  # Values:
+  #   - enforce: auto-fix this rule in enforce mode
+  #   - warn:    report only (no auto-fix) for this rule
+  #
+  # Rules are matched by substring, so "sql-injection" will match
+  # "custom.sql-injection-fstring", "python.sql-injection", etc.
+  #
+  # Example:
+  #   enforce_per_rule:
+  #     sql-injection: enforce      # Auto-fix SQL injection
+  #     hardcoded-secret: enforce   # Auto-fix hardcoded secrets
+  #     xss: warn                    # Only report XSS, don't auto-fix
+  #     command-injection: warn      # Only report command injection
+  enforce_per_rule: {}
+
+  # Only auto-fix findings at or above this severity level.
+  # Valid values: "INFO", "WARNING", "ERROR"
+  # Default: "ERROR" (most conservative - only fixes high-severity issues)
+  #
+  # Severity levels:
+  #   - ERROR:   Critical security issues (default)
+  #   - WARNING: Medium-severity issues
+  #   - INFO:    Low-severity or informational findings
+  #
+  # Example: To fix all findings regardless of severity:
+  #   severity_threshold: "INFO"
+  #
+  # Example: To only fix critical issues:
+  #   severity_threshold: "ERROR"
+  severity_threshold: "ERROR"
+
+
+# Baseline mode (ignore existing issues on legacy code)
+# ---------------------------------
+
+# When enabled, Fixpoint only reports / fixes violations that are
+# new since the configured baseline_sha.
+baseline_mode: false
+
+# Git commit SHA to use as the baseline for existing issues.
+# If null, baseline mode is disabled.
+baseline_sha: null
+
+
+# Per-directory policies
+# ---------------------------------
+
+# Configure different enforcement behaviour for different parts of your repo.
+# This allows fine-grained control: stricter rules for production code,
+# more lenient rules for tests or legacy code.
+#
+# Keys are directory prefixes (relative to repo root, with trailing slash).
+# Policies use longest-prefix matching, so more specific paths override
+# less specific ones.
+#
+# Each directory policy can override:
+#   - severity_threshold: Only fix findings at or above this severity
+#   - enforce_per_rule: Per-rule enforcement mode (enforce/warn)
+#
+# Example: Stricter rules for API code, lenient for tests
+# directory_policies:
+#   api/:
+#     severity_threshold: "ERROR"
+#     enforce_per_rule:
+#       sql-injection: enforce
+#       hardcoded-secret: enforce
+#   tests/:
+#     severity_threshold: "WARNING"  # Allow lower-severity findings in tests
+#     enforce_per_rule: {}          # Warn only (no auto-fix)
+#
+# Example: Allow all fixes in legacy/ directory, but only report
+# directory_policies:
+#   legacy/:
+#     severity_threshold: "INFO"
+#     enforce_per_rule:
+#       sql-injection: warn          # Don't auto-fix legacy code
+#       hardcoded-secret: warn
+directory_policies: {}
+
+
+# Formatting behaviour
+# ---------------------------------
+
+# Whether to run language formatters on files that Fixpoint has patched.
+# Formatters are best-effort and only run when available in the environment.
+format_after_patch: true
+
+# Maximum allowed expansion of the diff when running formatters.
+# For example, 0.2 means formatting may increase the total diff
+# size by at most 20% relative to the original patch.
+max_format_expansion: 0.2

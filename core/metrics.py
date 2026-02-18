@@ -9,7 +9,7 @@ import csv
 import json
 from pathlib import Path
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Iterable
 
 from core.observability import log_processing_result
 
@@ -27,6 +27,8 @@ def record_metric(
     mode: str = "warn",
     status: str = "success",
     metadata: Optional[Dict] = None,
+    installation_id: Optional[int] = None,
+    correlation_id: Optional[str] = None,
 ) -> None:
     """
     Record a metric event.
@@ -54,6 +56,22 @@ def record_metric(
     }
     
     _metrics_store.append(metric)
+    
+    # Persist to DB for dashboard (when installation_id available)
+    if installation_id is not None:
+        try:
+            from core.db import insert_run
+            insert_run(
+                installation_id=installation_id,
+                repo=repo,
+                status=status,
+                pr_number=pr_number,
+                violations_found=violations_found,
+                violations_fixed=violations_fixed,
+                correlation_id=correlation_id,
+            )
+        except Exception as e:
+            log_processing_result("metrics", "db_error", f"Failed to persist run: {e}")
     
     # Also log for observability
     log_processing_result(
@@ -123,7 +141,9 @@ def generate_metrics_summary() -> Dict:
     success_count = len([m for m in _metrics_store if m.get("status") == "success"])
     failure_count = len([m for m in _metrics_store if m.get("status") == "failure"])
     
-    return {
+    run_summary = summarize_run_metrics(_metrics_store)
+
+    summary = {
         "total_events": total_events,
         "unique_repos": len(repos),
         "prs_processed": prs_processed,
@@ -135,6 +155,64 @@ def generate_metrics_summary() -> Dict:
         "enforce_mode_events": enforce_mode_count,
         "success_rate": success_count / total_events if total_events > 0 else 0,
         "failure_count": failure_count,
+    }
+
+    summary.update(run_summary)
+    return summary
+
+
+def _percentile(values: list[float], percentile: float) -> float:
+    if not values:
+        return 0.0
+    values_sorted = sorted(values)
+    k = (len(values_sorted) - 1) * (percentile / 100.0)
+    f = int(k)
+    c = min(f + 1, len(values_sorted) - 1)
+    if f == c:
+        return float(values_sorted[f])
+    return float(values_sorted[f] + (values_sorted[c] - values_sorted[f]) * (k - f))
+
+
+def _iter_run_metrics(metrics: Iterable[Dict]) -> list[Dict]:
+    return [m for m in metrics if m.get("event_type") == "run_completed"]
+
+
+def summarize_run_metrics(metrics: Iterable[Dict]) -> Dict:
+    runs = _iter_run_metrics(metrics)
+    runtimes = [
+        float(m.get("metadata", {}).get("runtime_seconds", 0) or 0)
+        for m in runs
+        if (m.get("metadata") or {}).get("runtime_seconds") is not None
+    ]
+    fixes_attempted = sum(int((m.get("metadata") or {}).get("fixes_attempted", 0) or 0) for m in runs)
+    fixes_applied = sum(int((m.get("metadata") or {}).get("fixes_applied", 0) or 0) for m in runs)
+
+    degraded_count = 0
+    degraded_reasons: Dict[str, int] = {}
+    failure_reasons: Dict[str, int] = {}
+
+    for m in runs:
+        md = m.get("metadata", {}) or {}
+        reasons = md.get("degraded_reasons") or []
+        if reasons:
+            degraded_count += 1
+            for r in reasons:
+                key = str(r)
+                degraded_reasons[key] = degraded_reasons.get(key, 0) + 1
+        failure_reason = md.get("failure_reason")
+        if failure_reason:
+            key = str(failure_reason)
+            failure_reasons[key] = failure_reasons.get(key, 0) + 1
+
+    return {
+        "run_count": len(runs),
+        "runtime_p50": _percentile(runtimes, 50),
+        "runtime_p95": _percentile(runtimes, 95),
+        "fixes_attempted": fixes_attempted,
+        "fixes_applied": fixes_applied,
+        "degraded_to_warn_count": degraded_count,
+        "degraded_reasons": degraded_reasons,
+        "failure_reasons": failure_reasons,
     }
 
 

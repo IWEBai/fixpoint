@@ -7,6 +7,7 @@ from __future__ import annotations
 import hashlib
 import json
 from pathlib import Path
+from typing import Iterable, Tuple, List
 
 
 def compute_fix_idempotency_key(
@@ -242,3 +243,359 @@ def check_confidence_gating(finding: dict) -> bool:
         return True
     
     return False
+
+
+def check_max_files(changed_files: Iterable[str], max_files: int) -> Tuple[bool, int]:
+    """
+    Check if the number of files to be changed exceeds the configured limit.
+
+    Args:
+        changed_files: Iterable of file paths that may be modified
+        max_files: Maximum allowed number of files to change in a single run
+
+    Returns:
+        Tuple of (ok, count) where ok is True if within limit.
+    """
+    files = list({f for f in changed_files})
+    count = len(files)
+    return (count <= max_files, count)
+
+
+def check_sensitive_paths(
+    repo_path: Path,
+    changed_files: Iterable[str],
+    sensitive_paths_allowlist: Iterable[str] | None = None,
+) -> Tuple[bool, List[str]]:
+    """
+    Guardrail: block auto-commit when changes touch sensitive paths
+    (e.g. migrations/, infra/, auth/) unless explicitly allowed.
+
+    Args:
+        repo_path: Repository root
+        changed_files: Iterable of file paths (relative to repo root)
+        sensitive_paths_allowlist: Paths that are allowed even if they look sensitive
+
+    Returns:
+        Tuple of (ok, offending_files)
+    """
+    repo_path = Path(repo_path)
+    allowlist = {str(Path(p)) for p in (sensitive_paths_allowlist or []) if p}
+
+    # Heuristic list of sensitive path prefixes (relative to repo root)
+    sensitive_prefixes = (
+        "migrations/",
+        "infra/",
+        "infrastructure/",
+        "auth/",
+        "security/",
+    )
+
+    offending: List[str] = []
+    for rel in changed_files:
+        rel_str = str(rel).replace("\\", "/")
+        if rel_str in allowlist:
+            continue
+        for prefix in sensitive_prefixes:
+            if rel_str.startswith(prefix):
+                offending.append(rel_str)
+                break
+
+    return (len(offending) == 0, offending)
+
+
+def check_dependency_changes(
+    repo_path: Path,
+    changed_files: Iterable[str],
+    allow_dependency_changes: bool,
+) -> Tuple[bool, List[str]]:
+    """
+    Guardrail: block auto-commit when dependency / lock files change,
+    unless explicitly allowed by configuration.
+
+    Args:
+        repo_path: Repository root
+        changed_files: Iterable of file paths (relative to repo root)
+        allow_dependency_changes: If False, block when dependency files touched
+
+    Returns:
+        Tuple of (ok, offending_files)
+    """
+    if allow_dependency_changes:
+        return True, []
+
+    dependency_filenames = {
+        "requirements.txt",
+        "pyproject.toml",
+        "Pipfile",
+        "Pipfile.lock",
+        "package.json",
+        "package-lock.json",
+        "yarn.lock",
+        "pnpm-lock.yaml",
+    }
+
+    offending: List[str] = []
+    for rel in changed_files:
+        name = Path(rel).name
+        if name in dependency_filenames:
+            offending.append(str(rel).replace("\\", "/"))
+
+    return (len(offending) == 0, offending)
+
+
+def validate_patch_plan(plan, config: dict) -> Tuple[bool, List[str]]:
+    """
+    Run all safety guardrails against a patch plan *before* applying fixes.
+
+    The plan object is expected to have:
+      - repo_path: Path
+      - changed_files: Iterable[str]
+
+    Config keys used:
+      - max_files_changed (int)
+      - sensitive_paths_allowlist (list[str])
+      - allow_dependency_changes (bool)
+    """
+    from pathlib import Path as _Path  # avoid type confusion in signatures
+
+    repo_path: Path = _Path(plan.repo_path)
+    changed_files = list(plan.changed_files)
+
+    reasons: List[str] = []
+
+    # 1) Max files guardrail
+    max_files = int(config.get("max_files_changed", 0) or 0)
+    if max_files > 0:
+        ok_files, count = check_max_files(changed_files, max_files)
+        if not ok_files:
+            reasons.append(
+                f"Too many files would be changed ({count}, max {max_files}). "
+                "Adjust max_files_changed in .fixpoint.yml to allow this."
+            )
+
+    # 2) Sensitive paths guardrail
+    sensitive_allowlist = config.get("sensitive_paths_allowlist") or []
+    ok_sensitive, sensitive_offending = check_sensitive_paths(
+        repo_path,
+        changed_files,
+        sensitive_allowlist,
+    )
+    if not ok_sensitive and sensitive_offending:
+        joined = ", ".join(sorted(sensitive_offending))
+        reasons.append(
+            "Changes touch sensitive paths (e.g. migrations/, infra/, auth/): "
+            f"{joined}. Add explicit allow entries under sensitive_paths_allowlist "
+            "in .fixpoint.yml to permit auto-fix."
+        )
+
+    # 3) Dependency changes guardrail
+    allow_deps = bool(config.get("allow_dependency_changes", False))
+    ok_deps, dep_offending = check_dependency_changes(
+        repo_path,
+        changed_files,
+        allow_deps,
+    )
+    if not ok_deps and dep_offending:
+        joined = ", ".join(sorted(dep_offending))
+        reasons.append(
+            "Changes affect dependency/lock files: "
+            f"{joined}. Set allow_dependency_changes: true in .fixpoint.yml to allow this."
+        )
+
+    return (len(reasons) == 0, reasons)
+
+
+def analyze_diff_quality(repo_path: Path) -> dict:
+    """
+    Analyze git diff quality to ensure minimal, focused security patches.
+    
+    Checks for:
+    - Extra refactors (changes beyond security fixes)
+    - Reordering (imports, functions, classes)
+    - Unrelated whitespace changes
+    
+    Args:
+        repo_path: Path to repository root
+    
+    Returns:
+        Dict with keys:
+        - quality_score: float (0.0-1.0, higher is better)
+        - issues: list[str] - List of quality issues found
+        - is_minimal: bool - True if diff is minimal and focused
+    """
+    import subprocess
+    import re
+    
+    issues: List[str] = []
+    score = 1.0
+    
+    try:
+        # Get unified diff output
+        result = subprocess.run(
+            ["git", "diff", "--no-color"],
+            cwd=repo_path,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        
+        if not result.stdout.strip():
+            # No diff - perfect quality
+            return {
+                "quality_score": 1.0,
+                "issues": [],
+                "is_minimal": True,
+            }
+        
+        diff_lines = result.stdout.splitlines()
+        
+        # Track context to detect reordering
+        in_hunk = False
+        hunk_context: List[str] = []
+        
+        # Patterns to detect problematic changes
+        import_pattern = re.compile(r'^[\+\-]\s*(import|from)\s+')
+        function_pattern = re.compile(r'^[\+\-]\s*def\s+\w+')
+        class_pattern = re.compile(r'^[\+\-]\s*class\s+\w+')
+        
+        # Track additions/removals that might indicate reordering
+        added_imports: set[str] = set()
+        removed_imports: set[str] = set()
+        added_functions: set[str] = set()
+        removed_functions: set[str] = set()
+        
+        # Track pure whitespace changes
+        whitespace_only_changes = 0
+        total_changes = 0
+        
+        for i, line in enumerate(diff_lines):
+            if line.startswith("@@"):
+                # Hunk header - reset context
+                in_hunk = True
+                hunk_context = []
+                continue
+            
+            if not in_hunk:
+                continue
+            
+            if line.startswith("\\"):
+                continue
+            
+            # Track changes
+            if line.startswith("+") or line.startswith("-"):
+                total_changes += 1
+                
+                # Check for pure whitespace changes
+                stripped = line[1:].strip()
+                if not stripped:
+                    whitespace_only_changes += 1
+                    continue
+                
+                # Detect import reordering
+                if import_pattern.match(line):
+                    import_stmt = stripped
+                    if line.startswith("+"):
+                        added_imports.add(import_stmt)
+                    else:
+                        removed_imports.add(import_stmt)
+                
+                # Detect function/class reordering
+                if function_pattern.match(line):
+                    func_match = function_pattern.search(line)
+                    if func_match:
+                        func_name = func_match.group(0)
+                        if line.startswith("+"):
+                            added_functions.add(func_name)
+                        else:
+                            removed_functions.add(func_name)
+                
+                if class_pattern.match(line):
+                    class_match = class_pattern.search(line)
+                    if class_match:
+                        class_name = class_match.group(0)
+                        # Class reordering is suspicious
+                        issues.append(f"Class definition moved: {class_name}")
+                        score -= 0.1
+            
+            # Track context lines (unchanged)
+            elif line.startswith(" "):
+                hunk_context.append(line[1:])
+        
+        # Check for import reordering (same imports added and removed)
+        reordered_imports = added_imports & removed_imports
+        if reordered_imports:
+            issues.append(
+                f"Import reordering detected ({len(reordered_imports)} import(s) moved). "
+                "Patches should not reorder imports."
+            )
+            score -= 0.15 * min(len(reordered_imports), 3)  # Cap penalty
+        
+        # Check for function reordering
+        reordered_functions = added_functions & removed_functions
+        if reordered_functions:
+            issues.append(
+                f"Function reordering detected ({len(reordered_functions)} function(s) moved). "
+                "Patches should not reorder code."
+            )
+            score -= 0.2 * min(len(reordered_functions), 2)  # Cap penalty
+        
+        # Check for excessive whitespace-only changes
+        if total_changes > 0:
+            whitespace_ratio = whitespace_only_changes / total_changes
+            if whitespace_ratio > 0.3:  # More than 30% whitespace changes
+                issues.append(
+                    f"Excessive whitespace-only changes ({whitespace_ratio:.1%} of diff). "
+                    "Patches should focus on security fixes, not formatting."
+                )
+                score -= 0.2
+        
+        # Check for suspicious patterns that suggest refactoring
+        # Look for large blocks of additions/removals that aren't security fixes
+        consecutive_additions = 0
+        consecutive_removals = 0
+        max_consecutive = 0
+        
+        for line in diff_lines:
+            if line.startswith("+"):
+                consecutive_additions += 1
+                consecutive_removals = 0
+                max_consecutive = max(max_consecutive, consecutive_additions)
+            elif line.startswith("-"):
+                consecutive_removals += 1
+                consecutive_additions = 0
+                max_consecutive = max(max_consecutive, consecutive_removals)
+            else:
+                consecutive_additions = 0
+                consecutive_removals = 0
+        
+        # Large consecutive blocks might indicate refactoring
+        if max_consecutive > 20:
+            issues.append(
+                f"Large consecutive change block ({max_consecutive} lines). "
+                "This may indicate refactoring beyond security fixes."
+            )
+            score -= 0.1
+        
+        # Ensure score stays in valid range
+        score = max(0.0, min(1.0, score))
+        
+        # Consider minimal if score >= 0.7 and no critical issues
+        is_minimal = score >= 0.7 and not any(
+            "reordering" in issue.lower() or "refactoring" in issue.lower()
+            for issue in issues
+        )
+        
+        return {
+            "quality_score": score,
+            "issues": issues,
+            "is_minimal": is_minimal,
+        }
+    
+    except Exception as e:
+        # If analysis fails, err on the side of caution
+        return {
+            "quality_score": 0.5,
+            "issues": [f"Diff quality analysis failed: {e}"],
+            "is_minimal": False,
+        }
+

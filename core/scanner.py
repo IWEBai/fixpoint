@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 from core.ignore import filter_ignored_files, read_ignore_file
+from core.cache import compute_rules_version, get_cached_scan, cache_scan
 
 
 def run(cmd: list[str], cwd: Path | None = None) -> subprocess.CompletedProcess:
@@ -38,6 +39,7 @@ def semgrep_scan(
     out_json: Path,
     target_files: Optional[list[str]] = None,
     apply_ignore: bool = True,
+    max_runtime_seconds: Optional[int] = None,
 ) -> dict:
     """
     Run semgrep and write JSON to out_json.
@@ -52,6 +54,25 @@ def semgrep_scan(
     Returns:
         Parsed Semgrep results as dict
     """
+    # Early exit: filter out-of-scope files quickly
+    # Supported extensions: Python and JS/TS only
+    SUPPORTED_EXTENSIONS = {".py", ".js", ".ts", ".jsx", ".tsx"}
+    
+    if target_files:
+        # Fast path: filter to supported extensions only
+        filtered = []
+        for file_path in target_files:
+            file_path_obj = Path(file_path)
+            ext = file_path_obj.suffix.lower()
+            if ext in SUPPORTED_EXTENSIONS:
+                filtered.append(file_path)
+        
+        if not filtered:
+            # No supported files - early exit
+            return {"results": []}
+        
+        target_files = filtered
+    
     # Apply .fixpointignore filtering
     if apply_ignore and target_files:
         ignore_patterns = read_ignore_file(repo_path)
@@ -73,6 +94,11 @@ def semgrep_scan(
         "--output",
         str(out_json),
     ]
+
+    # Respect overall runtime budget by passing a timeout hint to Semgrep.
+    # We keep this conservative – if Semgrep exceeds it, it will stop early.
+    if max_runtime_seconds is not None and max_runtime_seconds > 0:
+        cmd.extend(["--timeout", str(max_runtime_seconds)])
     
     # If target_files provided, scan only those files (PR diff mode)
     if target_files is not None:
@@ -80,19 +106,58 @@ def semgrep_scan(
             # Empty list means no files to scan
             return {"results": []}
             
-        # Semgrep can take multiple file paths
+        # Semgrep can take multiple file paths and handles them efficiently internally.
+        # No need for parallelization here - Semgrep's internal engine is already optimized
+        # for scanning multiple files in a single process.
         for file_path in target_files:
             full_path = repo_path / file_path if not Path(file_path).is_absolute() else Path(file_path)
             if full_path.exists():
                 cmd.append(str(full_path))
     else:
-        # Full repo scan
+        # Full repo scan – may use cached results when available
+        # Compute cache key based on current repo HEAD + rules version.
+        repo_path = Path(repo_path)
+        try:
+            # Resolve current HEAD SHA
+            sha_result = run(["git", "rev-parse", "HEAD"], cwd=repo_path)
+            repo_sha = sha_result.stdout.strip()
+        except Exception:
+            repo_sha = ""
+
+        rule_version = compute_rules_version(Path(rules_path))
+
+        # Only leverage cache when we have a repo SHA (inside a git repo)
+        # and no explicit target_files (full-repo scan).
+        if repo_sha:
+            cached = get_cached_scan(repo_path, repo_sha, rule_version)
+            if cached is not None:
+                return cached
+
         cmd.append(str(repo_path))
     
     run(cmd, cwd=repo_path)
     raw = out_json.read_bytes()
     text = raw.decode("utf-8-sig", errors="replace")
-    return json.loads(text)
+    data = json.loads(text)
+
+    # Cache successful full-repo scans (no target_files)
+    if target_files is None:
+        try:
+            if "results" in data:
+                # Reuse the same repo_sha / rule_version computation logic
+                repo_path = Path(repo_path)
+                try:
+                    sha_result = run(["git", "rev-parse", "HEAD"], cwd=repo_path)
+                    repo_sha = sha_result.stdout.strip()
+                except Exception:
+                    repo_sha = ""
+                rule_version = compute_rules_version(Path(rules_path))
+                if repo_sha:
+                    cache_scan(repo_path, repo_sha, rule_version, data)
+        except Exception:
+            pass
+
+    return data
 
 
 def get_pr_diff_files(repo_path: Path, base_branch: str, head_branch: str) -> list[str]:

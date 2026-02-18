@@ -20,11 +20,11 @@ This guide walks you through setting up and using Fixpoint.
 
 ### Required Software
 
-| Software | Version | Check Command | Install Link |
-|----------|---------|---------------|--------------|
-| Python | 3.11+ | `python --version` | https://python.org |
-| Git | 2.30+ | `git --version` | https://git-scm.com |
-| GitHub CLI | Latest | `gh --version` | https://cli.github.com |
+| Software   | Version | Check Command      | Install Link           |
+| ---------- | ------- | ------------------ | ---------------------- |
+| Python     | 3.12+   | `python --version` | https://python.org     |
+| Git        | 2.30+   | `git --version`    | https://git-scm.com    |
+| GitHub CLI | Latest  | `gh --version`     | https://cli.github.com |
 
 ### GitHub CLI Authentication
 
@@ -35,6 +35,7 @@ gh auth login
 ```
 
 Follow the prompts:
+
 1. Choose: `GitHub.com`
 2. Choose: `HTTPS`
 3. Choose: `Login with a web browser`
@@ -42,6 +43,7 @@ Follow the prompts:
 5. Authorize GitHub CLI
 
 **Verify authentication:**
+
 ```bash
 gh auth status
 # Should show: ✓ Logged in to github.com as [your-username]
@@ -81,7 +83,7 @@ jobs:
       - name: Fixpoint
         uses: IWEBai/fixpoint@v1
         with:
-          mode: warn  # or "enforce" for auto-fix
+          mode: warn # or "enforce" for auto-fix
           base_branch: ${{ github.base_ref }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -94,23 +96,27 @@ jobs:
 For organizations that need self-hosted deployments.
 
 1. **Clone the repository:**
+
    ```bash
    git clone https://github.com/IWEBai/fixpoint.git
    cd fixpoint
    ```
 
 2. **Install dependencies:**
+
    ```bash
    pip install -r requirements.txt
    ```
 
 3. **Configure environment:**
+
    ```bash
    cp .env.example .env
    # Edit .env with your settings
    ```
 
 4. **Start the server:**
+
    ```bash
    python webhook_server.py
    ```
@@ -125,13 +131,14 @@ See [Environment Variables](./ENVIRONMENT_VARIABLES.md) for configuration option
 
 ### Option C: CLI Usage
 
-For local testing and one-off scans.
+For local testing and one-off scans. Scans Python and JavaScript/TypeScript (`.py`, `.js`, `.ts`, `.jsx`, `.tsx`).
 
 ```bash
 # Clone and install
 git clone https://github.com/IWEBai/fixpoint.git
 cd fixpoint
 pip install -r requirements.txt
+pip install semgrep  # Required for scanning (Linux/Mac; not supported on Windows)
 
 # Scan a repository (warn mode)
 python main.py /path/to/repo --warn-mode
@@ -141,6 +148,9 @@ python main.py /path/to/repo
 
 # Scan PR diff only
 python main.py /path/to/repo --pr-mode --base-ref main --head-ref feature-branch
+
+# Create a baseline at a commit (noise suppression)
+python main.py baseline create --sha <commit-sha>
 ```
 
 ---
@@ -154,11 +164,13 @@ Create `.github/workflows/fixpoint.yml` in your repository (see above).
 ### Step 2: Choose Mode
 
 **Warn Mode (default):**
+
 - Posts comments with suggested fixes
 - Sets status check to FAIL
 - Does NOT modify code
 
 **Enforce Mode:**
+
 - Automatically applies fixes
 - Commits to PR branch
 - Sets status check to PASS
@@ -220,6 +232,30 @@ curl http://localhost:8000/health
 
 To test Fixpoint with sample PRs:
 
+### One-command demo (fork -> PR -> comments + SARIF)
+
+```bash
+gh repo fork IWEBai/fixpoint-demo --clone && cd fixpoint-demo && git checkout -b demo/fixpoint && python - <<'PY'
+Path = __import__("pathlib").Path
+Path("demo_vuln.py").write_text(
+   """import sqlite3\n\n"
+   "def get_user(email):\n"
+   "    conn = sqlite3.connect('users.db')\n"
+   "    cur = conn.cursor()\n"
+   "    query = f\"SELECT * FROM users WHERE email = '{email}'\"\n"
+   "    cur.execute(query)\n"
+   "    return cur.fetchone()\n"
+)
+PY
+git add demo_vuln.py && git commit -m "demo: add SQLi" && git push -u origin HEAD && gh pr create --fill
+```
+
+Open the PR and you should see:
+
+- Fixpoint comment with proposed or applied fixes
+- SARIF results uploaded to Code Scanning
+- Annotations on the diff (check the PR Files tab)
+
 ### Manual Setup
 
 1. Create a new repository
@@ -267,6 +303,7 @@ To test Fixpoint with sample PRs:
 ### "To get started with GitHub CLI, please run: gh auth login"
 
 **Solution:** Authenticate GitHub CLI first:
+
 ```bash
 gh auth login
 ```
@@ -278,6 +315,7 @@ gh auth login
 ### Webhook returns 401
 
 **Causes:**
+
 - Invalid signature (check `WEBHOOK_SECRET` matches)
 - Missing `GITHUB_TOKEN`
 - Repository not in allowlist
@@ -287,6 +325,7 @@ gh auth login
 ### No status check appearing
 
 **Causes:**
+
 - Workflow not triggered (check workflow file)
 - Permissions missing (need `statuses: write`)
 - Workflow failed (check Actions tab)
@@ -305,11 +344,11 @@ gh auth login
 
 Your feedback and adoption help us improve Fixpoint and plan paid offerings.
 
-| We'd love to... | How |
-|-----------------|-----|
-| **Know who's using it** | Reply in [Who's using Fixpoint?](https://github.com/IWEBai/fixpoint/discussions/categories/whos-using-fixpoint) (optional: company/repo name). |
-| **Get your feedback** | Open an [Issue](https://github.com/IWEBai/fixpoint/issues) or [Discussion](https://github.com/IWEBai/fixpoint/discussions) — bugs, feature ideas, or questions. |
-| **Offer you more** | Need hosted Fixpoint (SaaS) or enterprise support? [Get in touch](https://github.com/IWEBai/fixpoint/discussions/categories/general) — we're building paid options. |
+| We'd love to...         | How                                                                                                                                                                 |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Know who's using it** | Reply in [Who's using Fixpoint?](https://github.com/IWEBai/fixpoint/discussions/categories/whos-using-fixpoint) (optional: company/repo name).                      |
+| **Get your feedback**   | Open an [Issue](https://github.com/IWEBai/fixpoint/issues) or [Discussion](https://github.com/IWEBai/fixpoint/discussions) — bugs, feature ideas, or questions.     |
+| **Offer you more**      | Need hosted Fixpoint (SaaS) or enterprise support? [Get in touch](https://github.com/IWEBai/fixpoint/discussions/categories/general) — we're building paid options. |
 
 ---
 
@@ -323,4 +362,4 @@ Your feedback and adoption help us improve Fixpoint and plan paid offerings.
 
 ---
 
-*Fixpoint by [IWEB](https://www.iwebai.space)*
+_Fixpoint by [IWEB](https://www.iwebai.space)_

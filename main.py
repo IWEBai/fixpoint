@@ -5,6 +5,7 @@ Main entry point supporting both CLI mode (Phase 1) and PR diff mode (Phase 2).
 from __future__ import annotations
 
 import argparse
+import sys
 import os
 from pathlib import Path
 
@@ -15,6 +16,8 @@ from core.fixer import process_findings
 from core.git_ops import commit_and_push_new_branch, commit_and_push_to_existing_branch, generate_branch_name
 from core.ignore import filter_ignored_files
 from github_bot.open_pr import open_or_get_pr
+from core.config import render_preset_yaml, get_preset_names
+from core.baseline import create_baseline, BaselineError
 
 
 def process_repo_scan(
@@ -85,9 +88,98 @@ def process_repo_scan(
     return any_changes, processed
 
 
+def _handle_config_init(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        description="Fixpoint config init: generate a .fixpoint.yml from presets"
+    )
+    parser.add_argument(
+        "--preset",
+        type=str,
+        choices=get_preset_names(),
+        default="starter",
+        help="Preset name (starter, balanced, strict)",
+    )
+    parser.add_argument(
+        "--repo",
+        type=str,
+        default=".",
+        help="Repository path to write .fixpoint.yml",
+    )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Overwrite existing .fixpoint.yml",
+    )
+
+    args = parser.parse_args(argv)
+    repo_path = Path(args.repo).resolve()
+    if not repo_path.exists():
+        print(f"Repo path does not exist: {repo_path}")
+        return 1
+
+    config_path = repo_path / ".fixpoint.yml"
+    if config_path.exists() and not args.force:
+        print(f"Config already exists: {config_path}")
+        print("Use --force to overwrite.")
+        return 1
+
+    content = render_preset_yaml(args.preset)
+    config_path.write_text(content, encoding="utf-8")
+    print(f"Wrote {config_path} using preset '{args.preset}'.")
+    return 0
+
+
+def _handle_baseline_create(argv: list[str]) -> int:
+    parser = argparse.ArgumentParser(
+        description="Fixpoint baseline create: capture baseline findings at a commit"
+    )
+    parser.add_argument("--sha", type=str, required=True, help="Git commit SHA for baseline")
+    parser.add_argument(
+        "--repo",
+        type=str,
+        default=".",
+        help="Repository path to create baseline for",
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default=None,
+        help="Optional output path for baseline JSON",
+    )
+
+    args = parser.parse_args(argv)
+    repo_path = Path(args.repo).resolve()
+    if not repo_path.exists():
+        print(f"Repo path does not exist: {repo_path}")
+        return 1
+
+    rules_path = Path(__file__).parent / "rules"
+    output_path = Path(args.output).resolve() if args.output else None
+    try:
+        path = create_baseline(repo_path, args.sha, rules_path, output_path=output_path)
+    except BaselineError as e:
+        print(f"Baseline create failed: {e}")
+        return 1
+
+    print(f"Baseline created: {path}")
+    return 0
+
+
 def main():
     load_dotenv()
-    
+
+    # Subcommand: config init
+    if len(sys.argv) >= 2 and sys.argv[1] == "config":
+        if len(sys.argv) >= 3 and sys.argv[2] == "init":
+            sys.exit(_handle_config_init(sys.argv[3:]))
+        print("Usage: fixpoint config init [--preset starter|balanced|strict|tailored] [--repo PATH]")
+        sys.exit(1)
+    if len(sys.argv) >= 2 and sys.argv[1] == "baseline":
+        if len(sys.argv) >= 3 and sys.argv[2] == "create":
+            sys.exit(_handle_baseline_create(sys.argv[3:]))
+        print("Usage: fixpoint baseline create --sha <sha> [--repo PATH] [--output PATH]")
+        sys.exit(1)
+
     parser = argparse.ArgumentParser(
         description="Fixpoint: Auto-fix security vulnerabilities in your PRs"
     )

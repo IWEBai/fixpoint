@@ -5,11 +5,16 @@ python-dotenv==1.0.1
 PyYAML==6.0.2
 PyGithub==2.5.0
 Flask==3.1.0
+PyJWT[crypto]==2.10.1  # GitHub App JWT auth (core/github_app_auth.py)
+requests==2.32.3  # OAuth + GitHub API for dashboard
 
 # Testing dependencies
 pytest==8.3.4
 pytest-cov==6.0.0
 pytest-mock==3.14.0
+hypothesis==6.151.6
+tree_sitter==0.21.3
+tree_sitter_languages==1.10.2
 
 # Production dependencies (optional, for scaling)
 # redis==5.2.1  # Uncomment for distributed rate limiting/caching

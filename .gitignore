@@ -19,6 +19,12 @@ htmlcov/
 # Cache directory
 .fixpoint_cache/
 
+# E2E simulation artifacts
+_e2e/
+
+# Hypothesis test database
+.hypothesis/
+
 # IDE
 .idea/
 .vscode/

@@ -1,0 +1,10 @@
+import sqlite3
+
+
+def get_user(email):
+    conn = sqlite3.connect("users.db")
+    cursor = conn.cursor()
+    query = "SELECT * FROM users WHERE email = %s"
+    cursor.execute(query, (email,))
+    return cursor.fetchone()
+

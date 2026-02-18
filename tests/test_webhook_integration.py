@@ -71,6 +71,25 @@ class TestWebhookIntegration:
         response = app.get('/health')
         assert response.status_code == 200
         assert response.json['status'] == 'healthy'
+
+    def test_landing_page(self, app):
+        """Landing page should return 200 and contain install CTA."""
+        response = app.get('/')
+        assert response.status_code == 200
+        assert b'Install Fixpoint' in response.data or b'install' in response.data.lower()
+
+    def test_privacy_page(self, app):
+        """Privacy policy page should return 200."""
+        response = app.get('/privacy')
+        assert response.status_code == 200
+        assert b'Privacy' in response.data
+
+    def test_dashboard_responds(self, app):
+        """Dashboard endpoint responds (200 when unconfigured, 302 when OAuth redirect)."""
+        response = app.get('/dashboard')
+        assert response.status_code in (200, 302)
+        if response.status_code == 200:
+            assert b'Dashboard' in response.data
     
     @patch.dict(os.environ, {"SKIP_WEBHOOK_VERIFICATION": "true"})
     def test_webhook_rejects_invalid_event_type(self, app, valid_pr_payload):

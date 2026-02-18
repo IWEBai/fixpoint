@@ -4,7 +4,6 @@ Tests for JavaScript/TypeScript fixers.
 from __future__ import annotations
 
 import pytest
-from pathlib import Path
 
 from patcher.fix_javascript import (
     apply_fix_js_secrets,

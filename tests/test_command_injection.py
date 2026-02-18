@@ -4,7 +4,6 @@ Tests for command injection fixer.
 from __future__ import annotations
 
 import pytest
-from pathlib import Path
 
 from patcher.fix_command_injection import apply_fix_command_injection, propose_fix_command_injection
 

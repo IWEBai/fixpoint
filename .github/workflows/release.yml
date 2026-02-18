@@ -40,6 +40,20 @@ jobs:
         run: |
           echo "## What's New in v${{ steps.version.outputs.VERSION }}" > release_notes.md
           echo "" >> release_notes.md
+          echo "### Phase 3A — Python" >> release_notes.md
+          echo "- **Command injection**: \`os.system\` and \`subprocess\` with \`shell=True\` → safe list-based subprocess" >> release_notes.md
+          echo "- **Path traversal**: \`os.path.join\` with user input → path validation" >> release_notes.md
+          echo "- **SSRF**: Detection for \`requests.get/post\` and \`urlopen\`; guidance in comments" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Phase 3B — JavaScript/TypeScript" >> release_notes.md
+          echo "- **eval**: Detection; guidance in warn comments" >> release_notes.md
+          echo "- **Hardcoded secrets**: \`apiKey = \"xxx\"\` → \`process.env.API_KEY\`" >> release_notes.md
+          echo "- **DOM XSS**: \`innerHTML =\` → \`textContent =\`" >> release_notes.md
+          echo "- Supported files: \`.js\`, \`.ts\`, \`.jsx\`, \`.tsx\`" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Safety Rails" >> release_notes.md
+          echo "- Max-diff threshold, optional test run before commit, CWE/OWASP tags in PR comments" >> release_notes.md
+          echo "" >> release_notes.md
           echo "See [CHANGELOG.md](https://github.com/IWEBai/fixpoint/blob/main/CHANGELOG.md) for full details." >> release_notes.md
           echo "" >> release_notes.md
           echo "### Quick Start" >> release_notes.md

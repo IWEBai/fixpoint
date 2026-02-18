@@ -38,6 +38,21 @@ pip install semgrep   # for full test run (Linux/macOS)
 pytest
 ```
 
+### Golden snapshot workflow
+
+Golden fixtures live under [tests/golden](tests/golden). If a fixer output changes,
+tests will fail until you intentionally update snapshots:
+
+```bash
+FIXPOINT_UPDATE_GOLDENS=1 pytest tests/test_golden.py
+```
+
+Optional regression gate (no new Semgrep findings for the same rule family):
+
+```bash
+FIXPOINT_SEMGREP_GATE=1 pytest tests/test_golden.py
+```
+
 ---
 
 ## Questions?
@@ -48,4 +63,4 @@ pytest
 
 ---
 
-*Fixpoint by [IWEB](https://www.iwebai.space)*
+_Fixpoint by [IWEB](https://www.iwebai.space)_

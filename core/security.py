@@ -5,9 +5,10 @@ Handles signature verification, event filtering, and replay protection.
 from __future__ import annotations
 
 import os
+import re
 import hmac
 import hashlib
-from typing import Optional
+from typing import Optional, Tuple
 from datetime import datetime, timedelta, timezone
 
 
@@ -57,14 +58,14 @@ def verify_webhook_signature(payload_body: bytes, signature: str, secret: str) -
 def is_allowed_event_type(event_type: str) -> bool:
     """
     Strict allowlist of allowed GitHub event types.
-    
-    Args:
-        event_type: X-GitHub-Event header value
-    
-    Returns:
-        True if event type is allowed
+
+    Includes installation events for GitHub App lifecycle.
     """
-    ALLOWED_EVENTS = {"pull_request"}
+    ALLOWED_EVENTS = {
+        "pull_request",
+        "installation",
+        "installation_repositories",
+    }
     return event_type in ALLOWED_EVENTS
 
 
@@ -154,28 +155,125 @@ def is_repo_allowed(full_repo_name: str) -> tuple[bool, Optional[str]]:
     return True, None
 
 
+# --- Request sanitization helpers ------------------------------------------------
+
+_SAFE_REPO_OWNER_RE = re.compile(r"^[A-Za-z0-9_.-]{1,100}$")
+_SAFE_REPO_NAME_RE = re.compile(r"^[A-Za-z0-9_.-]{1,100}$")
+
+
+def sanitize_repo_owner(owner: str) -> tuple[bool, Optional[str]]:
+    """
+    Sanitize and validate a GitHub repository owner name.
+
+    Rejects values with path traversal, whitespace, or unexpected characters.
+
+    Returns:
+        (is_valid, normalized_owner_or_error)
+    """
+    if not owner:
+        return False, "Repository owner is empty"
+
+    owner = str(owner).strip()
+
+    # Disallow obvious path traversal / control chars
+    if ".." in owner or "/" in owner or "\\" in owner or "\n" in owner or "\r" in owner:
+        return False, "Repository owner contains invalid characters"
+
+    if not _SAFE_REPO_OWNER_RE.match(owner):
+        return False, "Repository owner contains unsupported characters"
+
+    # Normalize to lowercase for consistency
+    return True, owner.lower()
+
+
+def sanitize_repo_name(name: str) -> tuple[bool, Optional[str]]:
+    """
+    Sanitize and validate a GitHub repository name.
+
+    Rejects values with path traversal, whitespace, or unexpected characters.
+
+    Returns:
+        (is_valid, normalized_name_or_error)
+    """
+    if not name:
+        return False, "Repository name is empty"
+
+    name = str(name).strip()
+
+    if ".." in name or "/" in name or "\\" in name or "\n" in name or "\r" in name:
+        return False, "Repository name contains invalid characters"
+
+    if not _SAFE_REPO_NAME_RE.match(name):
+        return False, "Repository name contains unsupported characters"
+
+    # GitHub repo names are case-sensitive, but we still normalize for logging
+    return True, name
+
+
+def validate_installation_id(installation: dict) -> Tuple[bool, Optional[int], Optional[str]]:
+    """
+    Validate the installation block from a webhook payload.
+
+    Ensures the installation ID is present and well-formed before we call
+    GitHub APIs or persist anything.
+
+    Returns:
+        (is_valid, installation_id_or_none, error_message)
+    """
+    if not isinstance(installation, dict):
+        return False, None, "Missing or invalid installation payload"
+
+    raw_id = installation.get("id")
+    if raw_id is None:
+        return False, None, "Missing installation ID"
+
+    try:
+        inst_id = int(raw_id)
+    except (TypeError, ValueError):
+        return False, None, "Installation ID is not a valid integer"
+
+    if inst_id <= 0:
+        return False, None, "Installation ID must be a positive integer"
+
+    return True, inst_id, None
+
+
 def validate_webhook_request(
     payload_body: bytes,
     signature: str,
     event_type: str,
     delivery_id: str,
-    secret: str,
+    secret: str | list[str],
 ) -> tuple[bool, Optional[str]]:
     """
     Comprehensive webhook request validation.
-    
+
+    Supports both single secret (self-hosted) and multiple secrets
+    (GitHub App + self-hosted dual mode).
+
     Args:
         payload_body: Raw request body
         signature: X-Hub-Signature-256 header
         event_type: X-GitHub-Event header
         delivery_id: X-GitHub-Delivery header
-        secret: Webhook secret
-    
+        secret: Webhook secret, or list of secrets to try (app + repo)
+
     Returns:
         Tuple of (is_valid, error_message)
     """
-    # 1. Verify signature
-    if not verify_webhook_signature(payload_body, signature, secret):
+    # 1. Verify signature (try each secret if list)
+    secrets = [secret] if isinstance(secret, str) else (secret or [])
+    secrets = [s for s in secrets if s]
+    secret_valid = False
+    if not secrets:
+        # Empty list: fall back to SKIP_WEBHOOK_VERIFICATION (dev only)
+        secret_valid = verify_webhook_signature(payload_body, signature, "")
+    else:
+        for s in secrets:
+            if verify_webhook_signature(payload_body, signature, s):
+                secret_valid = True
+                break
+    if not secret_valid:
         return False, "Invalid webhook signature"
     
     # 2. Check event type allowlist

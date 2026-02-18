@@ -150,3 +150,75 @@ def generate_branch_name(prefix: str = "autopatcher/fix") -> str:
     """Generate a unique branch name with timestamp."""
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
     return f"{prefix}-{timestamp}"
+
+
+def commit_with_rollback(
+    repo_path: Path,
+    branch_name: str,
+    commit_message: str,
+    test_command: str | None = None,
+    test_timeout: int = 300,
+) -> tuple[bool, str | None]:
+    """
+    Commit and push changes with an optional pre-commit test step.
+
+    Semantics (two-phase with rollback):
+    - Always commit and push first (using commit_and_push_to_existing_branch).
+    - If test_command is provided, run tests *after* the commit.
+      - If tests pass, keep the commit and return (True, None).
+      - If tests fail, automatically create a rollback commit using
+        `git revert` and push it, then return (False, error_message).
+ 
+    This centralises the \"commit + tests + rollback\" safety rail so both
+    the GitHub Action and webhook paths use the same behaviour.
+
+    Returns:
+        (success, error_message_or_None)
+    """
+    repo_path = Path(repo_path)
+
+    try:
+        # First phase: commit and push changes to the existing branch
+        changed = commit_and_push_to_existing_branch(
+            repo_path,
+            branch_name,
+            commit_message,
+        )
+        if not changed:
+            return False, "No changes to commit"
+
+        # Second phase: optionally run tests and rollback on failure
+        if not test_command:
+            return True, None
+
+        ok, output = run_tests(repo_path, test_command, timeout=test_timeout)
+        if ok:
+            return True, None
+
+        # Tests failed – attempt rollback by reverting the last commit
+        try:
+            last_commit = run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=repo_path,
+            ).stdout.strip()
+            if last_commit:
+                # Create a revert commit and push it so remote state is clean
+                run(
+                    ["git", "revert", "--no-edit", last_commit],
+                    cwd=repo_path,
+                )
+                run(
+                    ["git", "push", "origin", branch_name],
+                    cwd=repo_path,
+                )
+            msg = (output or "Tests failed after commit")[:500]
+            return False, f"Tests failed after commit; rollback applied: {msg}"
+        except Exception as revert_err:
+            msg = (output or "Tests failed after commit")[:300]
+            return False, (
+                f"Tests failed after commit and rollback failed: {msg} "
+                f"(rollback error: {revert_err})"
+            )
+    except Exception as e:
+        return False, str(e)
+

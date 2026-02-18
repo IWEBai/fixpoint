@@ -19,9 +19,9 @@ def apply_fix_js_eval(repo_path: Path, target_relpath: str) -> bool:
 
     if not target_file.exists():
         return False
-
-    text = target_file.read_text(encoding="utf-8", errors="ignore")
-    original = text
+    
+    # Intentionally detection-only in this phase: we do not auto-fix generic
+    # eval() usage because safe transformations are highly context dependent.
 
     # Simple case: eval(jsonString) -> JSON.parse(jsonString) when it looks like JSON
     # Pattern: eval("...") or eval(`...`) with JSON-like content is rare; usually eval(var)
@@ -50,10 +50,6 @@ def apply_fix_js_secrets(repo_path: Path, target_relpath: str) -> bool:
     text = target_file.read_text(encoding="utf-8", errors="ignore")
 
     # Match: apiKey = "xxx" or api_key: "xxx" or const secret = "xxx"
-    patterns = [
-        (r'(\bapi_key|apiKey|access_token|accessToken|secret|password)\s*[:=]\s*["\']([^"\']+)["\']',
-         r'\1 = process.env.\2')  # Wrong - env key should be constant like API_KEY
-    ]
     # Better: replace value with process.env.API_KEY etc.
     def replacer(m):
         key = m.group(1).replace("-", "_").upper()

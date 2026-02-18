@@ -1,0 +1,6 @@
+# .fixpointignore
+# Files and directories to exclude from Fixpoint scanning
+# Similar to .gitignore syntax
+
+# Ignore migrations
+migrations/
