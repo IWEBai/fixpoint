@@ -10,9 +10,14 @@ __pycache__/
 
 # Generated files
 semgrep_results.json
+fixpoint.db
+safety-report.json
 .coverage
 htmlcov/
 .pytest_cache/
+
+# Cache directory
+.fixpoint_cache/
 
 # IDE
 .idea/
