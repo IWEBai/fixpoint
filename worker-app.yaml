@@ -1,4 +1,4 @@
-id: /subscriptions/02453eb5-bdac-41d5-943f-c281dfaa310b/resourceGroups/railo-cloud/providers/Microsoft.App/containerapps/railo-worker
+﻿id: /subscriptions/02453eb5-bdac-41d5-943f-c281dfaa310b/resourceGroups/railo-cloud/providers/Microsoft.App/containerapps/railo-worker
 identity:
   type: UserAssigned
   userAssignedIdentities:
@@ -135,7 +135,7 @@ properties:
             value: warn
           # -- Maintenance schedule --------------------------------------------
           # Set MAINTENANCE_CRON_ENABLED=true when running the web-server image
-          # as root (or via a separate Azure Container Apps Job � see below).
+          # as root (or via a separate Azure Container Apps Job — see below).
           #
           # Azure Container Apps Job (recommended for production):
           #   Schedule trigger: "0 2 * * *"
