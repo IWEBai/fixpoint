@@ -535,7 +535,7 @@ async def webhook(request: Request, session=Depends(db_session)):
 @api_router.get("/analytics/vulnerabilities")
 def analytics_vulnerabilities(session=Depends(db_session)):
     """Vulnerability type breakdown derived from run summaries."""
-    from sqlalchemy import select, func
+    from sqlalchemy import select
     from railo_cloud.models import Run
     from collections import Counter
 
@@ -639,7 +639,7 @@ def get_org_settings(slug: str, session=Depends(db_session)):
 
 @api_router.put("/orgs/{slug}/settings", status_code=204)
 def update_org_settings(slug: str, body: dict, session=Depends(db_session)):
-    from sqlalchemy import select, update as sa_update
+    from sqlalchemy import update as sa_update
     from railo_cloud.models import Repository
 
     mode = body.get("mode", "warn")
