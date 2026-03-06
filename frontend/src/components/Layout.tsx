@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -13,6 +13,11 @@ import api from "../lib/api";
 
 export default function Layout() {
   const navigate = useNavigate();
+  const [user, setUser] = useState<{ username?: string; role?: string } | null>(null);
+
+  useEffect(() => {
+    api.get("/auth/me", { baseURL: "/" }).then((res) => setUser(res.data)).catch(() => {});
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -77,14 +82,18 @@ export default function Layout() {
         <header className="h-16 border-b border-slate-800 flex items-center px-8 bg-slate-950/50 backdrop-blur-md sticky top-0 z-10">
           <div className="flex-1"></div>
           <div className="flex items-center space-x-4">
-            <span className="text-sm font-medium text-slate-400 px-3 py-1 rounded-full bg-slate-800 ring-1 ring-slate-700">
-              Admin Mode
-            </span>
+            {user?.role && (
+              <span className="text-sm font-medium text-slate-400 px-3 py-1 rounded-full bg-slate-800 ring-1 ring-slate-700 capitalize">
+                {user.role === "admin" ? "Admin Mode" : user.role}
+              </span>
+            )}
             <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center border border-slate-600">
-              <span className="text-sm font-bold text-slate-300">A</span>
+              <span className="text-sm font-bold text-slate-300">
+                {user?.username ? user.username[0].toUpperCase() : "?"}
+              </span>
             </div>
           </div>
-        </header>
+</header>
         <div className="flex-1 overflow-auto p-8 bg-gradient-to-b from-slate-900 to-slate-950">
           <Outlet />
         </div>

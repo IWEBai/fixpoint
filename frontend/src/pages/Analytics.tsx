@@ -71,6 +71,7 @@ export default function Analytics() {
   const [vulnBreakdown, setVulnBreakdown] = useState<VulnBreakdown[]>([]);
   const [dryRunStats, setDryRunStats] = useState<DryRunStats | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -82,11 +83,21 @@ export default function Analytics() {
           api.get("/dashboard/dry-run-stats"),
         ]);
         setSummary(sumRes.data ?? null);
-        setTimeseries(Array.isArray(timeRes.data?.data) ? timeRes.data.data : []);
-        setVulnBreakdown(Array.isArray(vulnRes.data?.data) ? vulnRes.data.data : []);
-        setDryRunStats(dryRes.data?.would_have_auto_merged !== undefined ? dryRes.data : null);
+        setTimeseries(
+          Array.isArray(timeRes.data?.data) ? timeRes.data.data : [],
+        );
+        setVulnBreakdown(
+          Array.isArray(vulnRes.data?.data) ? vulnRes.data.data : [],
+        );
+        setDryRunStats(
+          dryRes.data?.would_have_auto_merged !== undefined
+            ? dryRes.data
+            : null,
+        );
       } catch (err: any) {
         setError(err?.response?.data?.error ?? "Failed to load analytics data");
+      } finally {
+        setLoading(false);
       }
     };
     fetchData();
@@ -146,8 +157,30 @@ export default function Analytics() {
     },
   ];
 
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <h2 className="text-3xl font-bold tracking-tight">Analytics Overview</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-6 animate-pulse">
+              <div className="flex items-center space-x-4">
+                <div className="w-14 h-14 rounded-lg bg-slate-800" />
+                <div className="space-y-2">
+                  <div className="h-3 w-20 bg-slate-800 rounded" />
+                  <div className="h-7 w-10 bg-slate-800 rounded" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="bg-slate-900 border border-slate-800 rounded-xl p-6 h-80 animate-pulse" />
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-8">
       <div className="flex justify-between items-center">
         <h2 className="text-3xl font-bold tracking-tight">
           Analytics Overview
