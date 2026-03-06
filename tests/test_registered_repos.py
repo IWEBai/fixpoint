@@ -9,14 +9,10 @@ Covers:
 from __future__ import annotations
 
 import json
-import itertools
-import tempfile
 import uuid
-from pathlib import Path
 
 import pytest
 
-import core.db as db
 from core.db import (
     init_db,
     set_db_path,

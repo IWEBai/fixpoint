@@ -58,7 +58,6 @@ def run_digest_flush() -> dict:
     Returns a summary dict with per-installation results.
     """
     from core.db import get_connection  # lazy import
-    import json as _json
 
     conn = get_connection()
     try:

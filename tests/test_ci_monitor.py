@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import pytest
-from pathlib import Path
 
 from core.db import set_db_path, init_db, insert_run, get_connection
 

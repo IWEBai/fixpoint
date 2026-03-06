@@ -189,7 +189,7 @@ def get_analytics_summary(session: Session) -> dict:
     }
 
 def get_analytics_timeseries(session: Session, days: int = 30) -> list[dict]:
-    from sqlalchemy import func, String, cast
+    from sqlalchemy import func
     from datetime import datetime, timedelta
     
     cutoff_date = datetime.now() - timedelta(days=days)

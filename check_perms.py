@@ -1,5 +1,9 @@
 """Check GitHub App installation permissions"""
-import os, sys, time, json, urllib.request, base64
+import os
+import sys
+import time
+import json
+import urllib.request
 sys.path.insert(0, r"E:\\railo-cloud")
 from core.github_app_auth import _load_private_key, _get_jwt_module
 

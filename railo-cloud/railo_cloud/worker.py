@@ -19,7 +19,7 @@ from railo_cloud.artifacts import canonical_artifact_path
 from railo_cloud.config import get_settings
 from railo_cloud.db.base import get_session
 from railo_cloud.models import RunStatus
-from railo_cloud.queue import get_queue, get_redis_connection
+from railo_cloud.queue import get_redis_connection
 from core.status_checks import create_check_run_with_annotations
 from core.pr_comments import create_warn_comment, create_fix_comment
 from core.git_ops import commit_and_push_to_existing_branch
@@ -223,7 +223,7 @@ def handle_job(job_payload: dict[str, Any]) -> dict[str, Any]:
                     try:
                         env = os.environ.copy()
                         env["GIT_TERMINAL_PROMPT"] = "0"
-                        result = subprocess.run(
+                        subprocess.run(
                             ["git", "fetch", "--depth=1", "origin",
                              f"+refs/heads/{base_ref}:refs/remotes/origin/{base_ref}"],
                             cwd=tmpdir,

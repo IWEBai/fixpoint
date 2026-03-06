@@ -1,4 +1,5 @@
-import subprocess, re, json
+import subprocess
+import re
 
 conn_str = subprocess.check_output(
     'az keyvault secret show --vault-name railo-kv --name pg-conn --query value -o tsv',

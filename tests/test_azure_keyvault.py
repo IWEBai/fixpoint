@@ -6,10 +6,9 @@ unittest.mock so the tests pass even when those packages are not installed.
 """
 from __future__ import annotations
 
-import os
 import sys
 import types
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 

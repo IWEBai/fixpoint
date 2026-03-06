@@ -2,10 +2,9 @@
 from __future__ import annotations
 
 import pytest
-from pathlib import Path
 from datetime import datetime, timezone, timedelta
 
-from core.db import set_db_path, init_db, insert_run, get_connection
+from core.db import set_db_path, init_db, get_connection
 from core.dashboard_queries import (
     get_fixes_created_per_day,
     get_vulnerability_breakdown,

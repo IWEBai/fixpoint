@@ -1,7 +1,11 @@
 """Test creating a check run on the test repo"""
-import os, sys, json, time, urllib.request
+import os
+import sys
+import json
+import time
+import urllib.request
 sys.path.insert(0, r"E:\\railo-cloud")
-from core.github_app_auth import _load_private_key, _get_jwt_module
+from core.github_app_auth import _get_jwt_module
 
 # Get installation token
 pk = __import__('subprocess').check_output("az keyvault secret show --vault-name railo-kv --name github-private-key --query value -o tsv", shell=True, text=True, stderr=__import__('subprocess').DEVNULL).strip()

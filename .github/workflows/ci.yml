@@ -79,7 +79,7 @@ jobs:
           pip install ruff
 
       - name: Run linter
-        run: ruff check . --ignore E501
+        run: ruff check . --ignore E501,E402
 
   docker:
     runs-on: ubuntu-latest

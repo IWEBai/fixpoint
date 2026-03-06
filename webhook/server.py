@@ -38,7 +38,6 @@ from core.security import (
 )
 from core.github_app_auth import get_installation_access_token, is_github_app_configured
 from core.pr_comments import (
-    create_fix_comment,
     create_error_comment,
     create_warn_comment,
     generate_fix_pr_notification,
@@ -54,8 +53,6 @@ from core.observability import (
     CorrelationContext,
 )
 from core.dashboard_queries import (
-    get_fixes_created_per_day,
-    get_fixes_merged_per_day,
     get_vulnerability_breakdown,
     get_fix_merge_rate,
     get_ci_success_rate,
@@ -170,7 +167,6 @@ from core.db import (
     upsert_notification_settings,
     is_delivery_seen,
     mark_delivery_seen,
-    prune_old_runs,
     get_pending_digest_events,
     get_audit_log,
 )

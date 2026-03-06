@@ -18,8 +18,7 @@ import json
 import os
 import time
 import uuid
-from typing import Any
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -310,7 +309,7 @@ class TestRunbookWebhookReplay:
         Delivery IDs are persisted to SQLite, so they survive a process restart
         (simulated by re-importing the app module with the same DB path).
         """
-        from core.db import set_db_path, init_db, mark_delivery_seen, is_delivery_seen
+        from core.db import mark_delivery_seen, is_delivery_seen
         delivery_id = f"persist-{uuid.uuid4().hex}"
 
         mark_delivery_seen(delivery_id)

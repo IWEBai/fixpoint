@@ -7,7 +7,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Security, status
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 
@@ -178,7 +178,7 @@ def dashboard_redirect():
 @app.get("/metrics", dependencies=[Depends(require_dev)])
 def metrics(session=Depends(db_session)):
     """Basic operational metrics: queue depth and run status breakdown."""
-    from sqlalchemy import func, select, text
+    from sqlalchemy import func, select
     from railo_cloud.models import Run
 
     try:

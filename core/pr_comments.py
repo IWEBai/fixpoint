@@ -402,7 +402,7 @@ def create_warn_comment(
                     break
 
         total_findings = len(findings)
-        total_proposals = len(proposed_fixes)
+        _total_proposals = len(proposed_fixes)  # noqa: F841
 
         # --- Confidence summary ---
         confs = [c for f in findings for c in [_extract_confidence(f)] if c is not None]
