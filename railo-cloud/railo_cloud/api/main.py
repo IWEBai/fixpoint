@@ -7,7 +7,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Security, status
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, Security, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
 
@@ -156,13 +156,17 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/api")
+@app.get("/status")
 def root() -> dict[str, str]:
     return {
         "name": "Railo Cloud",
         "status": "ok",
         "docs": "/docs",
     }
+
+
+# --- API router (all dashboard/data endpoints under /api) -------
+api_router = APIRouter(prefix="/api", dependencies=[Depends(require_dev)])
 
 
 @app.get("/dashboard")
@@ -212,14 +216,14 @@ def create_installation(payload: schemas.InstallationCreate, session=Depends(db_
     return inst
 
 
-@app.get("/repos", response_model=schemas.ReposList, dependencies=[Depends(require_dev)])
+@api_router.get("/repos", response_model=schemas.ReposList)
 def list_repositories(session=Depends(db_session)):
     repos = crud.list_repos(session=session)
     return schemas.ReposList(repos=[_serialize_repo(r) for r in repos])
 
 
-@app.patch("/repos/{repo_id}", response_model=schemas.RepoResponse,
-           dependencies=[Depends(require_admin)])
+@api_router.patch("/repos/{repo_id}", response_model=schemas.RepoResponse,
+                  dependencies=[Depends(require_admin)])
 def update_repository(repo_id: uuid.UUID, payload: schemas.RepoUpdate, session=Depends(db_session)):
     repo = crud.get_repo(session, repo_id)
     if not repo:
@@ -238,13 +242,13 @@ def update_repository(repo_id: uuid.UUID, payload: schemas.RepoUpdate, session=D
     return _serialize_repo(repo)
 
 
-@app.get("/runs", response_model=schemas.RunsList, dependencies=[Depends(require_dev)])
+@api_router.get("/runs", response_model=schemas.RunsList)
 def list_runs(session=Depends(db_session)):
     runs = crud.list_runs(session=session)
     return schemas.RunsList(runs=[_serialize_run(r) for r in runs])
 
 
-@app.get("/runs/{run_id}", response_model=schemas.RunResponse, dependencies=[Depends(require_dev)])
+@api_router.get("/runs/{run_id}", response_model=schemas.RunResponse)
 def get_run(run_id: uuid.UUID, session=Depends(db_session)):
     run = crud.get_run(session, run_id)
     if not run:
@@ -252,19 +256,19 @@ def get_run(run_id: uuid.UUID, session=Depends(db_session)):
     return _serialize_run(run)
 
 
-@app.get("/analytics/summary", response_model=schemas.AnalyticsSummaryResponse, dependencies=[Depends(require_dev)])
+@api_router.get("/analytics/summary", response_model=schemas.AnalyticsSummaryResponse)
 def get_analytics_summary_endpoint(session=Depends(db_session)):
     data = crud.get_analytics_summary(session)
     return schemas.AnalyticsSummaryResponse(**data)
 
 
-@app.get("/analytics/timeseries", response_model=schemas.AnalyticsTimeseriesResponse, dependencies=[Depends(require_dev)])
+@api_router.get("/analytics/timeseries", response_model=schemas.AnalyticsTimeseriesResponse)
 def get_analytics_timeseries_endpoint(days: int = 30, session=Depends(db_session)):
     data = crud.get_analytics_timeseries(session, days=days)
     return schemas.AnalyticsTimeseriesResponse(data=data)
 
 
-@app.get("/user/settings", dependencies=[Depends(require_dev)])
+@api_router.get("/user/settings")
 def get_user_settings():
     # Stub for user settings
     return {
@@ -274,14 +278,14 @@ def get_user_settings():
     }
 
 
-@app.post("/user/settings", dependencies=[Depends(require_dev)])
+@api_router.post("/user/settings")
 def update_user_settings(payload: dict):
     # Stub for updating user settings
     return {"status": "success", "settings": payload}
 
 
-@app.post("/runs/{run_id}/rerun", response_model=schemas.RunResponse,
-          dependencies=[Depends(require_admin)])
+@api_router.post("/runs/{run_id}/rerun", response_model=schemas.RunResponse,
+                 dependencies=[Depends(require_admin)])
 def rerun(run_id: uuid.UUID, session=Depends(db_session)):
     if settings.engine_mode != "local":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Rerun allowed only in local mode")
@@ -515,6 +519,8 @@ async def webhook(request: Request, session=Depends(db_session)):
     refreshed = crud.get_run(session, run.id) or run
 
     return schemas.RunResponse.from_orm(refreshed)
+
+app.include_router(api_router)
 
 # --- Serving Frontend SPA ---------------------------------------
 from fastapi.staticfiles import StaticFiles
