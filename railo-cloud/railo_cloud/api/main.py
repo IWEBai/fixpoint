@@ -520,6 +520,129 @@ async def webhook(request: Request, session=Depends(db_session)):
 
     return schemas.RunResponse.from_orm(refreshed)
 
+
+# --- Analytics: vulnerability breakdown -------------------------
+@api_router.get("/analytics/vulnerabilities")
+def analytics_vulnerabilities(session=Depends(db_session)):
+    """Vulnerability type breakdown derived from run summaries."""
+    from sqlalchemy import select, func
+    from railo_cloud.models import Run
+    from collections import Counter
+
+    rows = session.execute(
+        select(Run.summary).where(Run.summary.isnot(None))
+    ).scalars().all()
+
+    counts: Counter = Counter()
+    for summary in rows:
+        if isinstance(summary, dict):
+            for vuln in summary.get("vulnerabilities", []):
+                vtype = vuln.get("type") or vuln.get("vuln_type") or vuln.get("rule_id", "unknown")
+                counts[vtype] += 1
+
+    data = [{"name": k, "count": v} for k, v in counts.most_common(10)]
+    return {"data": data}
+
+
+# --- Dashboard: dry-run stats for Tier A repos ------------------
+@api_router.get("/dashboard/dry-run-stats")
+def dashboard_dry_run_stats(session=Depends(db_session)):
+    """Tier A dry-run stats: fix PRs that passed safety gates but weren't auto-merged."""
+    from sqlalchemy import select, func
+    from railo_cloud.models import Run
+
+    rows = session.execute(
+        select(Run.repo_owner, Run.repo_name, func.count().label("cnt"))
+        .where(Run.summary["dry_run_eligible"].as_boolean().is_(True))
+        .group_by(Run.repo_owner, Run.repo_name)
+    ).all()
+
+    by_repo = [{"repo": f"{r.repo_owner}/{r.repo_name}", "count": r.cnt} for r in rows]
+    total = sum(r["count"] for r in by_repo)
+    return {"would_have_auto_merged": total, "by_repo": by_repo}
+
+
+# --- Installations list -----------------------------------------
+@api_router.get("/installations")
+def list_installations(session=Depends(db_session)):
+    from sqlalchemy import select
+    from railo_cloud.models import Installation
+
+    rows = session.execute(select(Installation)).scalars().all()
+    return {
+        "installations": [
+            {"installation_id": r.installation_id, "account_login": r.account_login or ""}
+            for r in rows
+        ]
+    }
+
+
+# --- Notification settings per installation ---------------------
+@api_router.get("/installations/{installation_id}/notifications")
+def get_notification_settings(installation_id: int, session=Depends(db_session)):
+    # Return defaults — extend with a DB table when notification settings are persisted
+    return {
+        "installation_id": installation_id,
+        "slack_webhook_url": "",
+        "email": "",
+        "notify_on_fix_applied": True,
+        "notify_on_ci_failure": True,
+        "notify_on_ci_success": False,
+        "notify_on_revert": True,
+        "digest_mode": False,
+    }
+
+
+@api_router.put("/installations/{installation_id}/notifications", status_code=204)
+def update_notification_settings(installation_id: int, body: dict):
+    # Placeholder — persist to DB when notification settings table exists
+    return None
+
+
+# --- Org policy settings ----------------------------------------
+@api_router.get("/orgs/{slug}/settings")
+def get_org_settings(slug: str, session=Depends(db_session)):
+    from sqlalchemy import select
+    from railo_cloud.models import Repository
+
+    # Derive mode/enabled from repos belonging to this org
+    rows = session.execute(
+        select(Repository).where(Repository.repo_owner == slug)
+    ).scalars().all()
+
+    if not rows:
+        raise HTTPException(status_code=404, detail=f"No repositories found for org '{slug}'")
+
+    mode = rows[0].mode or "warn"
+    enabled = any(r.enabled for r in rows)
+    return {
+        "account_login": slug,
+        "enabled": enabled,
+        "mode": mode,
+        "max_diff_lines": 500,
+        "max_runtime_seconds": 120,
+        "ignore_file": "",
+        "auto_merge_enabled": False,
+        "permission_tier": "A",
+    }
+
+
+@api_router.put("/orgs/{slug}/settings", status_code=204)
+def update_org_settings(slug: str, body: dict, session=Depends(db_session)):
+    from sqlalchemy import select, update as sa_update
+    from railo_cloud.models import Repository
+
+    mode = body.get("mode", "warn")
+    enabled = body.get("enabled", True)
+    session.execute(
+        sa_update(Repository)
+        .where(Repository.repo_owner == slug)
+        .values(mode=mode, enabled=enabled)
+    )
+    session.commit()
+    return None
+
+
 app.include_router(api_router)
 
 # --- Serving Frontend SPA ---------------------------------------
