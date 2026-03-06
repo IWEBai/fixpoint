@@ -46,7 +46,7 @@ jobs:
       - name: Build & push API image
         run: |
           docker build \
-            -f fixpoint-cloud/docker/Dockerfile \
+            -f railo-cloud/docker/Dockerfile \
             -t $ACR_REGISTRY/railo-api:${{ steps.tag.outputs.tag }} \
             .
           docker push $ACR_REGISTRY/railo-api:${{ steps.tag.outputs.tag }}

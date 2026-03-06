@@ -51,16 +51,16 @@ def _patch_dependencies():
     mock_run.updated_at = None
 
     with (
-        patch("fixpoint_cloud.api.main.get_queue", return_value=mock_queue),
-        patch("fixpoint_cloud.deps.get_session", return_value=mock_session),
-        patch("fixpoint_cloud.api.main.crud.create_run", return_value=mock_run),
-        patch("fixpoint_cloud.api.main.crud.update_run_status", return_value=mock_run),
-        patch("fixpoint_cloud.api.main.crud.get_run", return_value=mock_run),
-        patch("fixpoint_cloud.api.main.crud.list_runs", return_value=[mock_run]),
-        patch("fixpoint_cloud.api.main.crud.list_repos", return_value=[]),
-        patch("fixpoint_cloud.api.main.get_installation_access_token", return_value="ghs_test"),
-        patch("fixpoint_cloud.api.main.crud.upsert_installation", return_value=MagicMock()),
-        patch("fixpoint_cloud.api.main.crud.upsert_repository", return_value=MagicMock(
+        patch("railo_cloud.api.main.get_queue", return_value=mock_queue),
+        patch("railo_cloud.deps.get_session", return_value=mock_session),
+        patch("railo_cloud.api.main.crud.create_run", return_value=mock_run),
+        patch("railo_cloud.api.main.crud.update_run_status", return_value=mock_run),
+        patch("railo_cloud.api.main.crud.get_run", return_value=mock_run),
+        patch("railo_cloud.api.main.crud.list_runs", return_value=[mock_run]),
+        patch("railo_cloud.api.main.crud.list_repos", return_value=[]),
+        patch("railo_cloud.api.main.get_installation_access_token", return_value="ghs_test"),
+        patch("railo_cloud.api.main.crud.upsert_installation", return_value=MagicMock()),
+        patch("railo_cloud.api.main.crud.upsert_repository", return_value=MagicMock(
             mode="warn", id="repo-id"
         )),
     ):
@@ -70,7 +70,7 @@ def _patch_dependencies():
 @pytest.fixture()
 def client() -> Generator:
     # Import after patching infrastructure
-    from fixpoint_cloud.api.main import app
+    from railo_cloud.api.main import app
     with TestClient(app, raise_server_exceptions=False) as c:
         yield c
 
@@ -113,7 +113,7 @@ def test_runs_no_api_key_when_key_not_configured(client):
 
 
 def test_runs_requires_api_key_when_configured(client):
-    with patch("fixpoint_cloud.config.get_settings") as mock_settings:
+    with patch("railo_cloud.config.get_settings") as mock_settings:
         mock_cfg = MagicMock()
         mock_cfg.api_key = "secret-key"
         mock_cfg.engine_mode = "stub"
@@ -125,7 +125,7 @@ def test_runs_requires_api_key_when_configured(client):
 
 
 def test_runs_accepts_correct_api_key(client):
-    with patch("fixpoint_cloud.config.get_settings") as mock_settings:
+    with patch("railo_cloud.config.get_settings") as mock_settings:
         mock_cfg = MagicMock()
         mock_cfg.api_key = "secret-key"
         mock_cfg.engine_mode = "stub"
@@ -178,7 +178,7 @@ def test_webhook_rejects_invalid_signature(client):
 
 
 def test_webhook_ignores_non_pr_events(client):
-    with patch("fixpoint_cloud.api.main.settings") as mock_cfg:
+    with patch("railo_cloud.api.main.settings") as mock_cfg:
         mock_cfg.skip_webhook_verification = True
         mock_cfg.github_webhook_secret = ""
         mock_cfg.webhook_secret = ""
@@ -233,12 +233,12 @@ def test_webhook_rejects_oversized_body(client):
 def test_get_engine_uses_pooling_for_postgres():
     """Ensure connection pooling kwargs are set for non-SQLite URLs."""
     from unittest.mock import patch as mp
-    with mp("fixpoint_cloud.db.base.get_settings") as ms:
+    with mp("railo_cloud.db.base.get_settings") as ms:
         ms.return_value.database_url = "postgresql+psycopg://user:pass@host/db"
         # Clear lru_cache so our patched settings are used
-        from fixpoint_cloud.db.base import get_engine
+        from railo_cloud.db.base import get_engine
         get_engine.cache_clear()
-        with mp("fixpoint_cloud.db.base.create_engine") as mock_engine:
+        with mp("railo_cloud.db.base.create_engine") as mock_engine:
             mock_engine.return_value = MagicMock()
             get_engine()
             call_kwargs = mock_engine.call_args[1]
@@ -249,11 +249,11 @@ def test_get_engine_uses_pooling_for_postgres():
 
 def test_get_engine_no_pooling_for_sqlite():
     from unittest.mock import patch as mp
-    with mp("fixpoint_cloud.db.base.get_settings") as ms:
+    with mp("railo_cloud.db.base.get_settings") as ms:
         ms.return_value.database_url = "sqlite:///./test.db"
-        from fixpoint_cloud.db.base import get_engine
+        from railo_cloud.db.base import get_engine
         get_engine.cache_clear()
-        with mp("fixpoint_cloud.db.base.create_engine") as mock_engine:
+        with mp("railo_cloud.db.base.create_engine") as mock_engine:
             mock_engine.return_value = MagicMock()
             get_engine()
             call_kwargs = mock_engine.call_args[1]

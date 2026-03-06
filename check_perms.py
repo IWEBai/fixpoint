@@ -1,6 +1,6 @@
 """Check GitHub App installation permissions"""
 import os, sys, time, json, urllib.request, base64
-sys.path.insert(0, r"E:\fixpoint-cloud")
+sys.path.insert(0, r"E:\\railo-cloud")
 from core.github_app_auth import _load_private_key, _get_jwt_module
 
 app_id = sys.argv[1] if len(sys.argv) > 1 else os.getenv("GITHUB_APP_ID", "2914293")

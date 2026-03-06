@@ -7,7 +7,7 @@ from enum import Enum
 from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
-from fixpoint_cloud.db.base import Base
+from railo_cloud.db.base import Base
 
 
 class RunStatus(str, Enum):

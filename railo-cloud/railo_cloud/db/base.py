@@ -5,7 +5,7 @@ from functools import lru_cache
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
-from fixpoint_cloud.config import get_settings
+from railo_cloud.config import get_settings
 
 
 class Base(DeclarativeBase):

@@ -11,7 +11,7 @@ RUN apt-get update \
     && groupadd -r appgroup \
     && useradd -r -g appgroup -m -d /home/appuser appuser
 
-COPY fixpoint-cloud/requirements.cloud.txt /app/requirements.cloud.txt
+COPY railo-cloud/requirements.cloud.txt /app/requirements.cloud.txt
 COPY requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.cloud.txt
 
@@ -24,7 +24,7 @@ RUN chown -R appuser:appgroup /app \
 
 USER appuser
 
-ENV PYTHONPATH=/app:/app/fixpoint-cloud
+ENV PYTHONPATH=/app:/app/railo-cloud
 
 # Default command is API; worker overrides in compose
-CMD ["uvicorn", "fixpoint_cloud.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "railo_cloud.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

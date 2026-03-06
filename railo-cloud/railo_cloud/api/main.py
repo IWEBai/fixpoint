@@ -24,14 +24,14 @@ from core.security import (
     validate_webhook_request,
 )
 from core.github_app_auth import get_installation_access_token
-from fixpoint_cloud import crud, schemas
-from fixpoint_cloud.artifacts import sanitize_artifact_paths
-from fixpoint_cloud.config import get_settings
-from fixpoint_cloud.deps import db_session
-from fixpoint_cloud.fingerprint import compute_run_fingerprint
-from fixpoint_cloud.models import RunStatus
-from fixpoint_cloud.queue import get_queue
-from fixpoint_cloud.queue import get_redis_connection
+from railo_cloud import crud, schemas
+from railo_cloud.artifacts import sanitize_artifact_paths
+from railo_cloud.config import get_settings
+from railo_cloud.deps import db_session
+from railo_cloud.fingerprint import compute_run_fingerprint
+from railo_cloud.models import RunStatus
+from railo_cloud.queue import get_queue
+from railo_cloud.queue import get_redis_connection
 
 logger = logging.getLogger(__name__)
 
@@ -104,7 +104,7 @@ async def _global_exception_handler(request: Request, exc: Exception) -> JSONRes
 
 
 # --- API key auth & RBAC -----------------------------------------------
-from fixpoint_cloud.auth import auth_router, require_admin, require_dev
+from railo_cloud.auth import auth_router, require_admin, require_dev
 
 app.include_router(auth_router, prefix="/auth", tags=["auth"])
 
@@ -175,7 +175,7 @@ def dashboard_redirect():
 def metrics(session=Depends(db_session)):
     """Basic operational metrics: queue depth and run status breakdown."""
     from sqlalchemy import func, select, text
-    from fixpoint_cloud.models import Run
+    from railo_cloud.models import Run
 
     try:
         redis_conn = get_redis_connection()
@@ -353,7 +353,7 @@ def rerun(run_id: uuid.UUID, session=Depends(db_session)):
 
     queue = get_queue()
     job = queue.enqueue(
-        "fixpoint_cloud.worker.handle_job",
+        "railo_cloud.worker.handle_job",
         job_payload,
         job_id=str(new_run.id),
         at_front=False,
@@ -505,7 +505,7 @@ async def webhook(request: Request, session=Depends(db_session)):
 
     queue = get_queue()
     job = queue.enqueue(
-        "fixpoint_cloud.worker.handle_job",
+        "railo_cloud.worker.handle_job",
         job_payload,
         job_id=str(run.id),
         at_front=False,

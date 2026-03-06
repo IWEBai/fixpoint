@@ -1,4 +1,4 @@
-﻿id: /subscriptions/02453eb5-bdac-41d5-943f-c281dfaa310b/resourceGroups/railo-cloud/providers/Microsoft.App/containerapps/railo-worker
+id: /subscriptions/02453eb5-bdac-41d5-943f-c281dfaa310b/resourceGroups/railo-cloud/providers/Microsoft.App/containerapps/railo-worker
 identity:
   type: UserAssigned
   userAssignedIdentities:
@@ -117,7 +117,7 @@ properties:
       - command:
           - python
           - -m
-          - fixpoint_cloud.worker
+          - railo_cloud.worker
         env:
           - name: DATABASE_URL
             secretRef: pg-conn
@@ -133,9 +133,9 @@ properties:
             value: live
           - name: FIXPOINT_MODE
             value: warn
-          # ── Maintenance schedule ────────────────────────────────────────────
+          # -- Maintenance schedule --------------------------------------------
           # Set MAINTENANCE_CRON_ENABLED=true when running the web-server image
-          # as root (or via a separate Azure Container Apps Job — see below).
+          # as root (or via a separate Azure Container Apps Job � see below).
           #
           # Azure Container Apps Job (recommended for production):
           #   Schedule trigger: "0 2 * * *"

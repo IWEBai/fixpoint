@@ -48,7 +48,7 @@ def verify_token(req: Request) -> dict:
 
 
 async def get_current_user(req: Request, api_key: str | None = Depends(_API_KEY_HEADER)):
-    from fixpoint_cloud.config import get_settings
+    from railo_cloud.config import get_settings
     
     # Allow API Key bypass based on existing require_api_key logic
     configured_key = get_settings().api_key

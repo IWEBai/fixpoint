@@ -16,7 +16,7 @@ jobs:
 
       - name: Write .env for compose
         run: |
-          cat > fixpoint-cloud/.env <<'EOF'
+          cat > railo-cloud/.env <<'EOF'
           POSTGRES_USER=fixpoint
           POSTGRES_PASSWORD=fixpoint
           POSTGRES_DB=fixpoint
@@ -32,7 +32,7 @@ jobs:
 
       - name: Build and start stack
         run: |
-          docker compose -f fixpoint-cloud/docker-compose.yml up -d --build
+          docker compose -f railo-cloud/docker-compose.yml up -d --build
 
       - name: Wait for API health
         run: |
@@ -45,14 +45,14 @@ jobs:
 
       - name: Post webhook fixture
         run: |
-          SIG=$(openssl dgst -sha256 -hmac devsecret fixpoint-cloud/fixtures/pull_request.json | awk '{print $2}')
+          SIG=$(openssl dgst -sha256 -hmac devsecret railo-cloud/fixtures/pull_request.json | awk '{print $2}')
           curl -s -o /tmp/webhook.log -w "%{http_code}" -X POST \
             http://localhost:8000/webhook \
             -H "X-GitHub-Event: pull_request" \
             -H "X-Hub-Signature-256: sha256=$SIG" \
             -H "X-GitHub-Delivery: e2e-ci" \
             -H "Content-Type: application/json" \
-            --data-binary @fixpoint-cloud/fixtures/pull_request.json \
+            --data-binary @railo-cloud/fixtures/pull_request.json \
             | grep -q "^2" || (echo "Webhook failed" && cat /tmp/webhook.log && exit 1)
 
         - name: Poll runs and assert fields
@@ -110,4 +110,4 @@ jobs:
 
       - name: Tear down
         if: always()
-        run: docker compose -f fixpoint-cloud/docker-compose.yml down -v
+        run: docker compose -f railo-cloud/docker-compose.yml down -v

@@ -2,7 +2,7 @@ services:
   api:
     build:
       context: ..
-      dockerfile: fixpoint-cloud/docker/Dockerfile
+      dockerfile: railo-cloud/docker/Dockerfile
     env_file: ./.env
     depends_on:
       postgres:
@@ -26,9 +26,9 @@ services:
   worker:
     build:
       context: ..
-      dockerfile: fixpoint-cloud/docker/Dockerfile
+      dockerfile: railo-cloud/docker/Dockerfile
     env_file: ./.env
-    command: ["python", "-m", "fixpoint_cloud.worker"]
+    command: ["python", "-m", "railo_cloud.worker"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -40,7 +40,7 @@ services:
       - ./railo-cloud.2026-02-21.private-key.pem:/run/secrets/github_app_private_key:ro
       - artifacts:/artifacts
     healthcheck:
-      test: ["CMD", "python", "-m", "fixpoint_cloud.worker_health"]
+      test: ["CMD", "python", "-m", "railo_cloud.worker_health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -49,9 +49,9 @@ services:
   migrations:
     build:
       context: ..
-      dockerfile: fixpoint-cloud/docker/Dockerfile
+      dockerfile: railo-cloud/docker/Dockerfile
     env_file: ./.env
-    command: ["python", "-m", "fixpoint_cloud.db.migrate"]
+    command: ["python", "-m", "railo_cloud.db.migrate"]
     depends_on:
       postgres:
         condition: service_healthy

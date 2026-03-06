@@ -4,7 +4,7 @@ from collections.abc import Generator
 
 from sqlalchemy.orm import Session
 
-from fixpoint_cloud.db.base import get_session
+from railo_cloud.db.base import get_session
 
 
 def db_session() -> Generator[Session, None, None]:

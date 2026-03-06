@@ -1,6 +1,6 @@
 """Test creating a check run on the test repo"""
 import os, sys, json, time, urllib.request
-sys.path.insert(0, r"E:\fixpoint-cloud")
+sys.path.insert(0, r"E:\\railo-cloud")
 from core.github_app_auth import _load_private_key, _get_jwt_module
 
 # Get installation token

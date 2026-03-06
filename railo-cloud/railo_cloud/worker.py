@@ -14,12 +14,12 @@ from typing import Any
 from rq import Connection, Worker
 
 from main import process_repo_scan  # type: ignore
-from fixpoint_cloud import crud
-from fixpoint_cloud.artifacts import canonical_artifact_path
-from fixpoint_cloud.config import get_settings
-from fixpoint_cloud.db.base import get_session
-from fixpoint_cloud.models import RunStatus
-from fixpoint_cloud.queue import get_queue, get_redis_connection
+from railo_cloud import crud
+from railo_cloud.artifacts import canonical_artifact_path
+from railo_cloud.config import get_settings
+from railo_cloud.db.base import get_session
+from railo_cloud.models import RunStatus
+from railo_cloud.queue import get_queue, get_redis_connection
 from core.status_checks import create_check_run_with_annotations
 from core.pr_comments import create_warn_comment, create_fix_comment
 from core.git_ops import commit_and_push_to_existing_branch

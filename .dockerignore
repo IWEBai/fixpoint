@@ -34,12 +34,12 @@ htmlcov/
 # Docs (not needed in image)
 docs/
 *.md
-!fixpoint-cloud/README.md
+!railo-cloud/README.md
 
 # E2E / test data
 _e2e/
 tests/
-fixpoint-cloud/tests/
+railo-cloud/tests/
 
 # Editor
 .vscode/
@@ -53,7 +53,7 @@ Thumbs.db
 
 # Node (web frontend built separately)
 node_modules/
-fixpoint-cloud/web/node_modules/
+railo-cloud/web/node_modules/
 .next/
 
 # Helper/temp scripts

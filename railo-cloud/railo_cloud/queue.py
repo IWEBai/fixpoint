@@ -5,7 +5,7 @@ from functools import lru_cache
 import redis
 from rq import Queue
 
-from fixpoint_cloud.config import get_settings
+from railo_cloud.config import get_settings
 
 
 @lru_cache(maxsize=1)

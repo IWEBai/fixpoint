@@ -6,8 +6,8 @@ from datetime import datetime, timedelta, timezone
 from rq import Queue, Worker
 from rq.registries import FailedJobRegistry
 
-from fixpoint_cloud.config import get_settings
-from fixpoint_cloud.queue import get_redis_connection
+from railo_cloud.config import get_settings
+from railo_cloud.queue import get_redis_connection
 
 # A worker is considered stale if it hasn't finished a job in this many minutes.
 _STALE_WORKER_MINUTES = 30

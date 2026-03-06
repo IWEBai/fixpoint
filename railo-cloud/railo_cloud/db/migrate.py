@@ -9,7 +9,7 @@ from alembic.config import Config
 def _find_project_root() -> Path:
     """Locate the project root that holds alembic.ini (handles container layout)."""
     here = Path(__file__).resolve()
-    candidates = [here.parents[3], here.parents[2]]  # /app and /app/fixpoint-cloud
+    candidates = [here.parents[3], here.parents[2]]  # /app and /app/railo-cloud
     for candidate in candidates:
         if (candidate / "alembic.ini").exists():
             return candidate

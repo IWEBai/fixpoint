@@ -6,7 +6,7 @@ from typing import Iterable, Optional
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from fixpoint_cloud.models import Installation, Repository, Run, RunStatus
+from railo_cloud.models import Installation, Repository, Run, RunStatus
 
 
 def create_run(

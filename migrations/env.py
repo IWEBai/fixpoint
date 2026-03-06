@@ -12,9 +12,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from fixpoint_cloud.config import get_settings
-from fixpoint_cloud.db.base import Base
-import fixpoint_cloud.models  # noqa: F401  # ensure models are imported for metadata
+from railo_cloud.config import get_settings
+from railo_cloud.db.base import Base
+import railo_cloud.models  # noqa: F401  # ensure models are imported for metadata
 
 settings = get_settings()
 config = context.config
