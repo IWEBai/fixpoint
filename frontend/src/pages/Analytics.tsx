@@ -81,10 +81,10 @@ export default function Analytics() {
           api.get("/analytics/vulnerabilities"),
           api.get("/dashboard/dry-run-stats"),
         ]);
-        setSummary(sumRes.data);
-        setTimeseries(timeRes.data.data);
-        setVulnBreakdown(vulnRes.data.data);
-        setDryRunStats(dryRes.data);
+        setSummary(sumRes.data ?? null);
+        setTimeseries(Array.isArray(timeRes.data?.data) ? timeRes.data.data : []);
+        setVulnBreakdown(Array.isArray(vulnRes.data?.data) ? vulnRes.data.data : []);
+        setDryRunStats(dryRes.data?.would_have_auto_merged !== undefined ? dryRes.data : null);
       } catch (err: any) {
         setError(err?.response?.data?.error ?? "Failed to load analytics data");
       }

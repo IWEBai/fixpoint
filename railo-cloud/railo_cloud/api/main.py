@@ -80,6 +80,16 @@ async def _limit_body_size(request: Request, call_next):
     return await call_next(request)
 
 
+# --- Cache-Control: no-store for all /api/* routes --------------
+@app.middleware("http")
+async def _no_cache_api(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith("/api/") or request.url.path.startswith("/auth/"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+    return response
+
+
 # --- Request correlation ID + structured logging ----------------
 @app.middleware("http")
 async def _log_requests(request: Request, call_next):
