@@ -6,12 +6,12 @@ Minimal implementation plan to complete the Phase 1 checklist for the Backdoor L
 
 ## Overview
 
-| Component | Scope | Effort |
-|-----------|-------|--------|
-| 1. Dashboard | Minimal: OAuth + installations + recent runs table | Medium |
-| 2. Landing page | Static HTML + install CTA + free beta | Low |
-| 3. Support + privacy | Email + single-page privacy policy | Low |
-| 4. Branding | Logo + feature card (or placeholders) | Low |
+| Component            | Scope                                              | Effort |
+| -------------------- | -------------------------------------------------- | ------ |
+| 1. Dashboard         | Minimal: OAuth + installations + recent runs table | Medium |
+| 2. Landing page      | Static HTML + install CTA + free beta              | Low    |
+| 3. Support + privacy | Email + single-page privacy policy                 | Low    |
+| 4. Branding          | Logo + feature card (or placeholders)              | Low    |
 
 ---
 
@@ -29,45 +29,45 @@ User → Browser → fixpoint.dev/dashboard
 
 - **Stack:** Same Flask app (`webhook/server.py`) or separate `dashboard/` module; add OAuth routes.
 - **Storage:** SQLite for Phase 1 (e.g. `fixpoint.db`). Tables: `installations`, `runs`, `oauth_sessions`.
-- **OAuth:** GitHub OAuth App (separate from Fixpoint *GitHub App*). Scope: `read:user`, `read:org` (or `user:email` minimal).
+- **OAuth:** GitHub OAuth App (separate from Fixpoint _GitHub App_). Scope: `read:user`, `read:org` (or `user:email` minimal).
 
 ### 1.2 Data Model
 
 **Installations** (synced from webhook `installation` events):
 
-| Column | Type |
-|--------|------|
-| id | INTEGER PK |
+| Column          | Type                               |
+| --------------- | ---------------------------------- |
+| id              | INTEGER PK                         |
 | installation_id | INTEGER UNIQUE (GitHub install ID) |
-| account_login | TEXT |
-| account_type | TEXT (Organization/User) |
-| created_at | TIMESTAMP |
-| updated_at | TIMESTAMP |
+| account_login   | TEXT                               |
+| account_type    | TEXT (Organization/User)           |
+| created_at      | TIMESTAMP                          |
+| updated_at      | TIMESTAMP                          |
 
 **Runs** (from `record_metric` and webhook processing):
 
-| Column | Type |
-|--------|------|
-| id | INTEGER PK |
-| installation_id | INTEGER FK |
-| repo | TEXT |
-| pr_number | INTEGER |
-| status | TEXT (success, warn_mode, error, ...) |
-| violations_found | INTEGER |
-| violations_fixed | INTEGER |
-| timestamp | TIMESTAMP |
-| correlation_id | TEXT |
+| Column           | Type                                  |
+| ---------------- | ------------------------------------- |
+| id               | INTEGER PK                            |
+| installation_id  | INTEGER FK                            |
+| repo             | TEXT                                  |
+| pr_number        | INTEGER                               |
+| status           | TEXT (success, warn_mode, error, ...) |
+| violations_found | INTEGER                               |
+| violations_fixed | INTEGER                               |
+| timestamp        | TIMESTAMP                             |
+| correlation_id   | TEXT                                  |
 
 ### 1.3 Routes
 
-| Route | Method | Purpose |
-|-------|--------|---------|
-| `/dashboard` | GET | Redirect to GitHub OAuth if not logged in |
-| `/dashboard/callback` | GET | OAuth callback, create session, redirect to dashboard |
-| `/dashboard/logout` | GET | Clear session |
-| `/dashboard/` | GET | Main dashboard: list installations, table of recent runs |
-| `/api/dashboard/installations` | GET | JSON: installations (for current user) |
-| `/api/dashboard/runs` | GET | JSON: recent runs (paginated) |
+| Route                          | Method | Purpose                                                  |
+| ------------------------------ | ------ | -------------------------------------------------------- |
+| `/dashboard`                   | GET    | Redirect to GitHub OAuth if not logged in                |
+| `/dashboard/callback`          | GET    | OAuth callback, create session, redirect to dashboard    |
+| `/dashboard/logout`            | GET    | Clear session                                            |
+| `/dashboard/`                  | GET    | Main dashboard: list installations, table of recent runs |
+| `/api/dashboard/installations` | GET    | JSON: installations (for current user)                   |
+| `/api/dashboard/runs`          | GET    | JSON: recent runs (paginated)                            |
 
 ### 1.4 Implementation Steps
 
@@ -88,7 +88,7 @@ User → Browser → fixpoint.dev/dashboard
 4. **Dashboard UI**
    - Single HTML page, server-rendered (Jinja2) or minimal SPA.
    - Table: timestamp, repo, status, findings, link to PR.
-   - "Install Fixpoint" button → `github.com/apps/fixpoint-security/installations/new`.
+   - "Install Railo" button → `github.com/apps/railo-cloud/installations/new`.
 
 ### 1.5 Dependencies
 
@@ -104,7 +104,7 @@ User → Browser → fixpoint.dev/dashboard
 
 - **Headline:** "Auto-fix security vulnerabilities in your PRs"
 - **Subhead:** "Free beta for early adopters"
-- **CTA:** "Install Fixpoint" → `https://github.com/apps/fixpoint-security/installations/new`
+- **CTA:** "Install Railo" → `https://github.com/apps/railo-cloud/installations/new`
 - **Features:** 3–4 bullets (SQLi, secrets, XSS, deterministic).
 - **Footer:** Support (support@fixpoint.dev), Privacy Policy link.
 
@@ -191,7 +191,7 @@ User → Browser → fixpoint.dev/dashboard
 
 ### 5.1 Add to README
 
-- Direct install link: `[Install Fixpoint](https://github.com/apps/fixpoint-security/installations/new)` (replace with actual app slug).
+- Direct install link: `[Install Railo](https://github.com/apps/railo-cloud/installations/new)` (replace with actual app slug).
 - "Free beta for early adopters" badge or line.
 - Support: support@fixpoint.dev.
 - Privacy: link to `/privacy` or fixpoint.dev/privacy.
@@ -204,17 +204,17 @@ User → Browser → fixpoint.dev/dashboard
 
 ## 6. Recommended Order
 
-| Order | Task | Depends on |
-|-------|------|------------|
-| 1 | Privacy policy page + route | None |
-| 2 | Support email (create mailbox, add to docs) | None |
-| 3 | README: install URL, free beta, support, privacy | 1, 2 |
-| 4 | Landing page (HTML + CTA) | 3 |
-| 5 | Logo + feature card placeholders | None |
-| 6 | SQLite + persist runs from metrics | Webhook |
-| 7 | Persist installations from webhook | 6 |
-| 8 | GitHub OAuth App + callback | None |
-| 9 | Dashboard routes + UI | 6, 7, 8 |
+| Order | Task                                             | Depends on |
+| ----- | ------------------------------------------------ | ---------- |
+| 1     | Privacy policy page + route                      | None       |
+| 2     | Support email (create mailbox, add to docs)      | None       |
+| 3     | README: install URL, free beta, support, privacy | 1, 2       |
+| 4     | Landing page (HTML + CTA)                        | 3          |
+| 5     | Logo + feature card placeholders                 | None       |
+| 6     | SQLite + persist runs from metrics               | Webhook    |
+| 7     | Persist installations from webhook               | 6          |
+| 8     | GitHub OAuth App + callback                      | None       |
+| 9     | Dashboard routes + UI                            | 6, 7, 8    |
 
 **Fast path (1–2 days):** 1, 2, 3, 4, 5.  
 **Full dashboard (1 week):** 6–9.
@@ -223,12 +223,12 @@ User → Browser → fixpoint.dev/dashboard
 
 ## 7. Environment Variables (New)
 
-| Variable | Purpose |
-|----------|---------|
-| `GITHUB_OAUTH_CLIENT_ID` | OAuth App client ID |
-| `GITHUB_OAUTH_CLIENT_SECRET` | OAuth App client secret |
-| `DASHBOARD_SESSION_SECRET` | Cookie signing for OAuth session |
-| `BASE_URL` | e.g. `https://fixpoint.dev` (for OAuth redirect) |
+| Variable                     | Purpose                                          |
+| ---------------------------- | ------------------------------------------------ |
+| `GITHUB_OAUTH_CLIENT_ID`     | OAuth App client ID                              |
+| `GITHUB_OAUTH_CLIENT_SECRET` | OAuth App client secret                          |
+| `DASHBOARD_SESSION_SECRET`   | Cookie signing for OAuth session                 |
+| `BASE_URL`                   | e.g. `https://fixpoint.dev` (for OAuth redirect) |
 
 ---
 

@@ -1,0 +1,16 @@
+{
+  "action": "opened",
+  "number": 1,
+  "pull_request": {
+    "number": 1,
+    "head": {
+      "ref": "feature/test",
+      "sha": "abc123",
+      "repo": { "full_name": "example/repo" }
+    },
+    "base": { "ref": "main", "repo": { "full_name": "example/repo" } },
+    "html_url": "https://github.com/example/repo/pull/1"
+  },
+  "repository": { "name": "repo", "owner": { "login": "example" } },
+  "installation": { "id": 12345 }
+}

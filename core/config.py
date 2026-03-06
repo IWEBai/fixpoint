@@ -1,6 +1,7 @@
 """
-Configuration loader for Fixpoint.
-Loads repo-specific settings from .fixpoint.yml / .fixpoint.yaml.
+Configuration loader for Railo.
+Loads repo-specific settings from .railo.yml, .railo.yaml, .fixpoint.yml, or .fixpoint.yaml.
+All config files are optional — Railo works out of the box with zero configuration.
 """
 from __future__ import annotations
 
@@ -8,8 +9,8 @@ import os
 from pathlib import Path
 from typing import Any
 
-import yaml
-from yaml.nodes import MappingNode, SequenceNode
+import yaml  # type: ignore[import-untyped]
+from yaml.nodes import MappingNode, SequenceNode  # type: ignore[import-untyped]
 
 
 class ConfigError(Exception):
@@ -499,7 +500,10 @@ def load_config(repo_path: Path) -> dict[str, Any]:
         "max_format_expansion": DEFAULT_MAX_FORMAT_EXPANSION,
     }
     
-    for name in (".fixpoint.yml", ".fixpoint.yaml"):
+    # Config file is entirely optional.  Search order:
+    #   .railo.yml / .railo.yaml  (Railo-native, preferred)
+    #   .fixpoint.yml / .fixpoint.yaml  (legacy — still supported)
+    for name in (".railo.yml", ".railo.yaml", ".fixpoint.yml", ".fixpoint.yaml"):
         config_path = repo_path / name
         if config_path.exists():
             try:

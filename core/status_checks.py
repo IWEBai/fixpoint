@@ -4,11 +4,14 @@ Sets status checks to make Fixpoint a true "gate" in GitHub.
 """
 from __future__ import annotations
 
+import logging
 import os
 from typing import Optional, List, Dict, Any, Tuple, Set
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 
 def create_check_run_with_annotations(
@@ -18,6 +21,7 @@ def create_check_run_with_annotations(
     findings: List[Dict[str, Any]],
     conclusion: str,
     pr_url: Optional[str] = None,
+    token: Optional[str] = None,
 ) -> Optional[str]:
     """
     Create a GitHub Check Run with inline annotations for each finding.
@@ -32,13 +36,14 @@ def create_check_run_with_annotations(
         findings: List of Semgrep findings
         conclusion: \"success\", \"failure\", \"neutral\", etc.
         pr_url: Optional URL to link from the check run
+        token: Optional GitHub token override; falls back to GITHUB_TOKEN env var
 
     Returns:
         HTML URL of the created check run, or None on failure.
     """
-    token = os.getenv("GITHUB_TOKEN")
+    token = token or os.getenv("GITHUB_TOKEN")
     if not token:
-        print("Warning: GITHUB_TOKEN not found, cannot create check run")
+        logger.warning("GITHUB_TOKEN not found, cannot create check run")
         return None
 
     try:
@@ -128,20 +133,25 @@ def create_check_run_with_annotations(
         else:
             summary = "No violations detected by Fixpoint."
 
-        check_run = r.create_check_run(
-            name="Fixpoint - Security Check",
-            head_sha=sha,
-            status="completed",
-            conclusion=conclusion,
-            output={
+        kwargs = {
+            "name": "Fixpoint - Security Check",
+            "head_sha": sha,
+            "status": "completed",
+            "conclusion": conclusion,
+            "output": {
                 "title": "Fixpoint - Security Check",
                 "summary": summary,
                 "annotations": annotations,
             },
-            details_url=pr_url,
-        )
+        }
+        if pr_url:
+            kwargs["details_url"] = pr_url
+
+        check_run = r.create_check_run(**kwargs)
 
         return getattr(check_run, "html_url", None)
     except Exception as e:
-        print(f"Warning: Failed to create check run with annotations: {e}")
+        import traceback
+        logger.warning("Failed to create check run with annotations: %s: %s", type(e).__name__, e, exc_info=True)
+        traceback.print_exc()
         return None

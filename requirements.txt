@@ -17,4 +17,6 @@ tree_sitter==0.21.3
 tree_sitter_languages==1.10.2
 
 # Production dependencies (optional, for scaling)
-# redis==5.2.1  # Uncomment for distributed rate limiting/caching
+redis==5.2.1  # Distributed rate limiting/caching
+rq==1.13.0
+psycopg2-binary>=2.9.9  # PostgreSQL support (set DATABASE_URL=postgresql://... to activate)

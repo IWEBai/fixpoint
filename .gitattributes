@@ -1,0 +1,12 @@
+# Default: normalize line endings to LF in the repo
+* text=auto eol=lf
+
+# Shell scripts must always be LF (CRLF breaks them in Linux containers)
+*.sh text eol=lf
+
+# PEM / key files — keep as-is, never convert
+*.pem -text
+
+# Windows batch files may use CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf

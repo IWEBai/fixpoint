@@ -29,33 +29,33 @@ Complete step-by-step guide for launching Fixpoint as a GitHub App (Backdoor Lau
 
 - **Personal account:** [https://github.com/settings/apps](https://github.com/settings/apps) → **New GitHub App**
 
-*Org admins only: You need org admin or Developer settings access to create apps under the organization.*
+_Org admins only: You need org admin or Developer settings access to create apps under the organization._
 
 ### Basic Information
 
-| Field | Value |
-|-------|-------|
-| **GitHub App name** | `Fixpoint` or `Fixpoint Security` |
-| **Description** | Auto-fix security vulnerabilities in your PRs. Deterministic, rule-based patches. |
-| **Homepage URL** | `https://fixpoint.dev` (or your domain) |
+| Field               | Value                                                                             |
+| ------------------- | --------------------------------------------------------------------------------- |
+| **GitHub App name** | `Fixpoint` or `Fixpoint Security`                                                 |
+| **Description**     | Auto-fix security vulnerabilities in your PRs. Deterministic, rule-based patches. |
+| **Homepage URL**    | `https://fixpoint.dev` (or your domain)                                           |
 
 ### Webhook Configuration
 
-| Field | Value |
-|-------|-------|
-| **Webhook URL** | `https://fixpoint.dev/webhook` |
-| **Webhook secret** | Generate: `python -c "import secrets; print(secrets.token_hex(32))"` — save this for `GITHUB_APP_WEBHOOK_SECRET` |
-| **Webhook - Active** | ✅ Checked |
+| Field                | Value                                                                                                            |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| **Webhook URL**      | `https://fixpoint.dev/webhook`                                                                                   |
+| **Webhook secret**   | Generate: `python -c "import secrets; print(secrets.token_hex(32))"` — save this for `GITHUB_APP_WEBHOOK_SECRET` |
+| **Webhook - Active** | ✅ Checked                                                                                                       |
 
 ### Permissions & Events
 
 **Repository permissions:**
 
-| Permission | Access Level |
-|------------|--------------|
-| Contents | Read and write |
+| Permission    | Access Level   |
+| ------------- | -------------- |
+| Contents      | Read and write |
 | Pull requests | Read and write |
-| Statuses | Read and write |
+| Statuses      | Read and write |
 
 **Subscribe to events:**
 
@@ -68,29 +68,29 @@ Complete step-by-step guide for launching Fixpoint as a GitHub App (Backdoor Lau
 - **Only on this account** — if you want it only on your org (or only on your user)
 - **Any account** — for public distribution (recommended for Phase 1)
 
-*For organization-owned apps: "Only on this account" = only that org; "Any account" = any org or user can install.*
+_For organization-owned apps: "Only on this account" = only that org; "Any account" = any org or user can install._
 
 ### Post-creation
 
 1. Click **Create GitHub App**
 2. Go to **General** → **Generate a private key** → download the `.pem` file
 3. Note your **App ID** (e.g. `12345`)
-4. Note your **install URL** (e.g. `https://github.com/apps/fixpoint-security/installations/new`)
+4. Note your **install URL** (e.g. `https://github.com/apps/railo-cloud/installations/new`)
 
 ---
 
 ## 2. Update Install URL Slug
 
-If your GitHub App slug is **not** `fixpoint-security`, update it in these files:
+If your GitHub App slug is **not** `railo-cloud`, update it in these files:
 
-| File | Location | What to change |
-|------|----------|----------------|
-| `webhook/static/landing.html` | Line ~27 | `https://github.com/apps/fixpoint-security/installations/new` |
-| `webhook/server.py` | ~line 904 | Same URL in dashboard template |
-| `docs/GITHUB_APP_INSTALL.md` | Line 7 | Same URL |
-| `README.md` | Line 18 | Same URL |
+| File                          | Location  | What to change                                          |
+| ----------------------------- | --------- | ------------------------------------------------------- |
+| `webhook/static/landing.html` | Line ~27  | `https://github.com/apps/railo-cloud/installations/new` |
+| `webhook/server.py`           | ~line 904 | Same URL in dashboard template                          |
+| `docs/GITHUB_APP_INSTALL.md`  | Line 7    | Same URL                                                |
+| `README.md`                   | Line 18   | Same URL                                                |
 
-**Replace** `fixpoint-security` with your actual app slug (e.g. `fixpoint`).
+**Replace** `railo-cloud` with your actual app slug if different.
 
 ---
 
@@ -107,11 +107,11 @@ If your GitHub App slug is **not** `fixpoint-security`, update it in these files
 
 ### OAuth App Settings
 
-| Field | Value |
-|-------|-------|
-| **Application name** | Fixpoint Dashboard |
-| **Homepage URL** | `https://fixpoint.dev` (or your domain) |
-| **Application description** | Login for Fixpoint dashboard |
+| Field                          | Value                                     |
+| ------------------------------ | ----------------------------------------- |
+| **Application name**           | Fixpoint Dashboard                        |
+| **Homepage URL**               | `https://fixpoint.dev` (or your domain)   |
+| **Application description**    | Login for Fixpoint dashboard              |
 | **Authorization callback URL** | `https://fixpoint.dev/dashboard/callback` |
 
 ### Post-creation
@@ -151,23 +151,23 @@ Create a support mailbox for user questions.
 
 ### Logo
 
-| Requirement | Value |
-|-------------|-------|
-| **Size** | 128×128 minimum (256×256 for Marketplace) |
-| **Format** | PNG, square |
-| **Location** | `assets/logo.png` |
-| **Usage** | GitHub App settings, landing page, README |
+| Requirement  | Value                                     |
+| ------------ | ----------------------------------------- |
+| **Size**     | 128×128 minimum (256×256 for Marketplace) |
+| **Format**   | PNG, square                               |
+| **Location** | `assets/logo.png`                         |
+| **Usage**    | GitHub App settings, landing page, README |
 
 **Placeholder:** Simple "F" or shield icon until final design.
 
 ### Feature Card (Marketplace, Phase 2)
 
-| Requirement | Value |
-|-------------|-------|
-| **Size** | 1280×640 pixels |
-| **Format** | PNG or JPG |
-| **Location** | `assets/feature-card.png` |
-| **Content** | Fixpoint name, tagline, optional screenshot |
+| Requirement  | Value                                       |
+| ------------ | ------------------------------------------- |
+| **Size**     | 1280×640 pixels                             |
+| **Format**   | PNG or JPG                                  |
+| **Location** | `assets/feature-card.png`                   |
+| **Content**  | Fixpoint name, tagline, optional screenshot |
 
 **Placeholder:** Solid color + text until ready.
 
@@ -245,11 +245,11 @@ ENTRYPOINT ["python", "webhook_server.py"]
 
 ### Test Endpoints
 
-| URL | Expected |
-|-----|----------|
-| `https://fixpoint.dev` | Landing page |
-| `https://fixpoint.dev/health` | `{"status":"healthy"}` |
-| `https://fixpoint.dev/privacy` | Privacy policy |
+| URL                              | Expected                    |
+| -------------------------------- | --------------------------- |
+| `https://fixpoint.dev`           | Landing page                |
+| `https://fixpoint.dev/health`    | `{"status":"healthy"}`      |
+| `https://fixpoint.dev/privacy`   | Privacy policy              |
 | `https://fixpoint.dev/dashboard` | OAuth redirect or dashboard |
 
 ### Test Webhook
@@ -267,12 +267,12 @@ Share: `https://github.com/apps/YOUR-APP-SLUG/installations/new`
 
 ### Promotion Channels
 
-| Channel | Notes |
-|---------|-------|
-| **Reddit** | r/devops, r/security, r/webdev |
+| Channel         | Notes                                        |
+| --------------- | -------------------------------------------- |
+| **Reddit**      | r/devops, r/security, r/webdev               |
 | **Hacker News** | Show HN: Fixpoint – auto-fix security in PRs |
-| **LinkedIn** | Post to your network |
-| **Twitter/X** | Tag @github, security accounts |
+| **LinkedIn**    | Post to your network                         |
+| **Twitter/X**   | Tag @github, security accounts               |
 
 ### Messaging
 
@@ -298,14 +298,14 @@ Share: `https://github.com/apps/YOUR-APP-SLUG/installations/new`
 
 ## Quick Reference: URLs
 
-| URL | Purpose |
-|-----|---------|
-| `https://fixpoint.dev` | Landing page |
-| `https://fixpoint.dev/webhook` | GitHub webhook endpoint |
-| `https://fixpoint.dev/dashboard` | Dashboard (OAuth login) |
-| `https://fixpoint.dev/privacy` | Privacy policy |
-| `https://fixpoint.dev/health` | Health check |
-| `https://github.com/apps/YOUR-SLUG/installations/new` | Direct install |
+| URL                                                   | Purpose                 |
+| ----------------------------------------------------- | ----------------------- |
+| `https://fixpoint.dev`                                | Landing page            |
+| `https://fixpoint.dev/webhook`                        | GitHub webhook endpoint |
+| `https://fixpoint.dev/dashboard`                      | Dashboard (OAuth login) |
+| `https://fixpoint.dev/privacy`                        | Privacy policy          |
+| `https://fixpoint.dev/health`                         | Health check            |
+| `https://github.com/apps/YOUR-SLUG/installations/new` | Direct install          |
 
 ---
 

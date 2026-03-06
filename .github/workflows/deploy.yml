@@ -1,0 +1,113 @@
+name: Deploy to Azure Container Apps
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy (defaults to git SHA)'
+        required: false
+
+env:
+  ACR_REGISTRY: railoregistry.azurecr.io
+  RESOURCE_GROUP: railo-cloud
+
+jobs:
+  build-and-push:
+    name: Build & Push Images
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.tag.outputs.tag }}
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute image tag
+        id: tag
+        run: |
+          TAG="${{ github.event.inputs.image_tag || github.sha }}"
+          echo "tag=${TAG:0:12}" >> "$GITHUB_OUTPUT"
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Log in to Azure Container Registry
+        run: az acr login --name railoregistry
+
+      - name: Build & push API image
+        run: |
+          docker build \
+            -f fixpoint-cloud/docker/Dockerfile \
+            -t $ACR_REGISTRY/railo-api:${{ steps.tag.outputs.tag }} \
+            .
+          docker push $ACR_REGISTRY/railo-api:${{ steps.tag.outputs.tag }}
+
+      - name: Build & push Worker image
+        run: |
+          docker tag $ACR_REGISTRY/railo-api:${{ steps.tag.outputs.tag }} \
+                     $ACR_REGISTRY/railo-worker:${{ steps.tag.outputs.tag }}
+          docker push $ACR_REGISTRY/railo-worker:${{ steps.tag.outputs.tag }}
+
+  deploy:
+    name: Deploy Container Apps
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    env:
+      TAG: ${{ needs.build-and-push.outputs.image_tag }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login (OIDC)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Install Azure Container Apps extension
+        run: az extension add --name containerapp --upgrade -y
+
+      - name: Deploy API
+        run: |
+          az containerapp update \
+            -n railo-api \
+            -g $RESOURCE_GROUP \
+            --image $ACR_REGISTRY/railo-api:$TAG \
+            --revision-suffix "cd-${TAG}" \
+            --cpu 0.5 \
+            --memory 1Gi
+
+      - name: Patch worker-app.yaml and Deploy Worker
+        run: |
+          sed -i \
+            "s|railoregistry.azurecr.io/railo-worker:.*|railoregistry.azurecr.io/railo-worker:${TAG}|" \
+            worker-app.yaml
+          sed -i "s|revisionSuffix: .*|revisionSuffix: cd-${TAG}|" worker-app.yaml
+          az containerapp update \
+            -n railo-worker \
+            -g $RESOURCE_GROUP \
+            --yaml worker-app.yaml
+
+      - name: Verify deployments
+        run: |
+          echo "=== API revision ==="
+          az containerapp revision list -n railo-api -g $RESOURCE_GROUP \
+            --query "[0].{name:name,running:properties.runningState}" -o table
+          echo "=== Worker revision ==="
+          az containerapp revision list -n railo-worker -g $RESOURCE_GROUP \
+            --query "[0].{name:name,running:properties.runningState}" -o table

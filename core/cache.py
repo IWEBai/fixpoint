@@ -36,7 +36,7 @@ def _init_redis() -> bool:
         return False
     
     try:
-        import redis
+        import redis  # type: ignore[import-untyped]
         _redis_client = redis.from_url(redis_url, decode_responses=True)
         # Test connection
         _redis_client.ping()
@@ -50,6 +50,13 @@ def _init_redis() -> bool:
         _redis_client = None
         _redis_available = False
         return False
+
+
+def get_redis_client() -> Optional[Any]:
+    """Return a connected Redis client if configured, else None."""
+    if _init_redis() and _redis_client:
+        return _redis_client
+    return None
 
 
 def _get_cache_dir(repo_path: Path) -> Path:

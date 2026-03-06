@@ -1,15 +1,18 @@
 """
-PR comment utilities for Fixpoint.
-Creates clear, actionable comments explaining fixes.
+PR comment utilities for Railo.
+Clean, developer-friendly comments that build trust through transparency.
 """
 from __future__ import annotations
 
+import logging
 import os
 import re
 from typing import Optional
 from dotenv import load_dotenv
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 
 def _sanitize_for_markdown(text: str, max_length: int = 500) -> str:
@@ -100,6 +103,179 @@ def _sanitize_code_block(code: str, max_length: int = 1000) -> str:
     return code
 
 
+def _extract_confidence(finding: dict) -> float | None:
+    """
+    Extract a 0-100 confidence value from a Semgrep finding.
+    Returns None when no confidence metadata is present.
+    """
+    meta = (finding.get("extra") or {}).get("metadata") or {}
+    raw = meta.get("confidence") or meta.get("probability") or meta.get("likelihood")
+    if raw is None:
+        return None
+    if isinstance(raw, str):
+        mapping = {"high": 90.0, "medium": 65.0, "low": 35.0,
+                   "critical": 95.0, "info": 20.0}
+        val = mapping.get(raw.lower())
+        if val is not None:
+            return val
+        try:
+            raw = float(raw)
+        except (ValueError, TypeError):
+            return None
+    val = float(raw)
+    # Normalise 0-1 probabilities to 0-100
+    if val <= 1.0:
+        val *= 100.0
+    return round(max(0.0, min(100.0, val)), 1)
+
+
+def _confidence_bar(pct: float) -> str:
+    """Return a simple text bar for a 0-100 confidence value."""
+    filled = round(pct / 10)
+    bar = "█" * filled + "░" * (10 - filled)
+    return f"`{bar}` {pct:.0f}%"
+
+
+def _vuln_label(check_id: str) -> str:
+    """Map a Semgrep check ID to a short human label."""
+    cid = check_id.lower()
+    if "sql" in cid or "sqli" in cid:
+        return "SQL Injection"
+    if "xss" in cid or "mark-safe" in cid or "innerhtml" in cid or "dom" in cid:
+        return "XSS"
+    if "secret" in cid or "password" in cid or "hardcoded" in cid or "token" in cid:
+        return "Hardcoded Secret"
+    if "command" in cid or "os-system" in cid or "subprocess" in cid:
+        return "Command Injection"
+    if "path" in cid or "traversal" in cid:
+        return "Path Traversal"
+    if "ssrf" in cid:
+        return "SSRF"
+    if "eval" in cid:
+        return "Dangerous eval"
+    return "Security Issue"
+
+
+def generate_welcome_comment(owner: str, repo: str) -> str:
+    """
+    One-time orientation comment posted on a repo's first Railo scan.
+
+    Keeps it very short — the developer is in the middle of opening a PR
+    and just wants to know what's happening.
+    """
+    return (
+        "## 👋 Railo is now active on this repo\n\n"
+        "I scan every PR for security issues and open a separate fix PR with patches.\n\n"
+        "| What I do | How |"
+        "\n|-----------|-----|"
+        "\n| **Detect** | Scan each PR with Semgrep rules (SQLi, XSS, secrets, and more) |"
+        "\n| **Fix** | Open a companion fix PR with deterministic patches |"
+        "\n| **Stay safe** | Your branch is never modified without review |"
+        "\n\n"
+        "No configuration required — I'm already running. "
+        "To customise behaviour, add a `.railo.yml` to your repo root or visit the "
+        "[Railo dashboard](https://app.railo.dev).\n\n"
+        "_This message only appears once per repo._"
+    )
+
+
+def generate_fix_pr_notification(
+    fix_pr_number: int,
+    fix_pr_url: str,
+    safety_score: float,
+    vuln_count: int,
+    vuln_types: list[str],
+    findings: list[dict] | None = None,
+    previews: list[dict] | None = None,
+) -> str:
+    """
+    Generate a comment on the original PR announcing the fix PR.
+
+    Simple narrative: Railo detected issues → opened a fix PR → here's what changed.
+    Optionally shows before/after code blocks and per-finding confidence.
+    """
+    findings = findings or []
+    previews = previews or []
+    types_text = ", ".join(sorted(set(vuln_types))) if vuln_types else "security issues"
+
+    # Confidence summary across all findings
+    confs = [c for f in findings for c in [_extract_confidence(f)] if c is not None]
+    avg_conf = round(sum(confs) / len(confs), 1) if confs else None
+
+    lines: list[str] = []
+    lines.append(f"## 🔒 Railo fixed {vuln_count} security issue(s)")
+    lines.append("")
+    lines.append(
+        f"Railo scanned this PR, found **{vuln_count} {types_text}** issue(s), "
+        f"and opened a companion fix PR with deterministic patches."
+    )
+    lines.append("")
+
+    # Scores block
+    score_parts = [f"**Safety score:** {safety_score:.0f}/100"]
+    if avg_conf is not None:
+        score_parts.append(f"**Fix confidence:** {_confidence_bar(avg_conf)}")
+    lines.append("  \n".join(score_parts))
+    lines.append("")
+
+    # Fix PR CTA — the only action the developer needs to take
+    lines.append(f"### 👉 [Review fix PR #{fix_pr_number}]({fix_pr_url})")
+    lines.append("")
+
+    # Before/After previews
+    if previews:
+        lines.append("### What changed")
+        lines.append("")
+        shown = previews[:3]  # cap at 3 to keep comment readable
+        for p in shown:
+            file_path = _sanitize_file_path(str(p.get("file", "")))
+            line_no = p.get("line", "")
+            before = _sanitize_code_block(str(p.get("before", "")).strip())
+            after = _sanitize_code_block(str(p.get("after", "")).strip())
+            vuln = _vuln_label(str(p.get("check_id", "")))
+            conf = p.get("confidence")
+
+            header = f"`{file_path}`" + (f" line {line_no}" if line_no else "")
+            if conf is not None:
+                header += f" — confidence {_confidence_bar(float(conf))}"
+            lines.append(f"**{vuln}** · {header}")
+            lines.append("")
+            lines.append("**Before:**")
+            lines.append(f"```python\n{before}\n```")
+            lines.append("**After:**")
+            lines.append(f"```python\n{after}\n```")
+            lines.append("")
+        if len(previews) > len(shown):
+            lines.append(
+                f"_…and {len(previews) - len(shown)} more fix(es) — "
+                f"[see the full diff]({fix_pr_url}/files)_"
+            )
+            lines.append("")
+    elif findings:
+        # No before/after available; show a compact findings table
+        lines.append("### What was found")
+        lines.append("")
+        lines.append("| File | Issue | Confidence |")
+        lines.append("|------|-------|-----------|")
+        for f in findings[:5]:
+            fp = _sanitize_file_path(f.get("path", ""))
+            ln = (f.get("start") or {}).get("line", "")
+            label = _vuln_label(str(f.get("check_id", "")))
+            c = _extract_confidence(f)
+            conf_str = f"{c:.0f}%" if c is not None else "—"
+            lines.append(f"| `{fp}`:{ln} | {label} | {conf_str} |")
+        if len(findings) > 5:
+            lines.append(f"| … | +{len(findings) - 5} more | |")
+        lines.append("")
+
+    lines.append("---")
+    lines.append(
+        "_Your branch was not modified. "
+        "Review and merge the fix PR when you're happy with the changes._"
+    )
+    return "\n".join(lines)
+
+
 def create_fix_comment(
     owner: str,
     repo: str,
@@ -109,26 +285,13 @@ def create_fix_comment(
     patch_hunks: Optional[list[str]] = None,
     max_hunks: int = 5,
     safety_snippet: Optional[str] = None,
+    token: Optional[str] = None,
 ) -> str:
-    """
-    Create a PR comment explaining what was fixed.
-    
-    Args:
-        owner: Repository owner
-        repo: Repository name
-        pr_number: PR number
-        files_fixed: List of files that were fixed
-        findings: List of findings that were fixed
-    
-    Returns:
-        Comment URL or empty string if failed
-    """
-    token = os.getenv("GITHUB_TOKEN")
+    """Post a comment on the original PR summarising what enforce-mode fixed."""
+    token = token or os.getenv("GITHUB_TOKEN")
     if not token:
         return ""
-    
     try:
-        # Lazy import so local/dev/test environments without PyGithub can still import the module.
         from github import Github, Auth  # type: ignore
 
         g = Github(auth=Auth.Token(token))
@@ -138,91 +301,39 @@ def create_fix_comment(
         total_findings = len(findings)
         total_files = len(files_fixed)
 
-        # Build comment body with collapsible sections and clearer structure.
-        comment_body = "## ⚡ Fixpoint AutoPatch\n\n"
-        comment_body += "I've automatically applied **deterministic security fixes** to this PR.\n\n"
+        # Confidence summary
+        confs = [c for f in findings for c in [_extract_confidence(f)] if c is not None]
+        avg_conf = round(sum(confs) / len(confs), 1) if confs else None
 
-        comment_body += f"**Summary:** Fixed `{total_findings}` finding(s) across `{total_files}` file(s).\n\n"
+        comment_body = f"## ✅ Railo fixed {total_findings} security issue(s)\n\n"
+        comment_body += f"Patched `{total_findings}` finding(s) across `{total_files}` file(s). "
+        comment_body += "Your branch now contains the fixes.\n\n"
 
-        # Optional trust-contract safety decision snippet
+        if avg_conf is not None:
+            comment_body += f"**Fix confidence:** {_confidence_bar(avg_conf)}\n\n"
+
         if safety_snippet:
             comment_body += f"> {safety_snippet}\n\n"
 
-        # What was found (collapsible)
-        comment_body += "<details>\n"
-        comment_body += "<summary><strong>What was found</strong></summary>\n\n"
-        for finding in findings:
-            file_path = _sanitize_file_path(finding.get("path", ""))
-            start_line = int(finding.get("start", {}).get("line", 0))
-            message = _sanitize_for_markdown(
-                finding.get("extra", {}).get("message", "Security violation")
-            )
-            check_id = _sanitize_for_markdown(
-                finding.get("check_id", ""), max_length=100
-            )
-            metadata = finding.get("extra", {}).get("metadata", {}) or {}
-            cwe = metadata.get("cwe", "")
-            owasp = metadata.get("owasp", "")
+        # Findings table
+        if findings:
+            comment_body += "### What was fixed\n\n"
+            comment_body += "| File | Issue | Line | Confidence |\n"
+            comment_body += "|------|-------|------|-----------|\n"
+            for f in findings:
+                fp = _sanitize_file_path(f.get("path", ""))
+                ln = (f.get("start") or {}).get("line", "")
+                label = _vuln_label(str(f.get("check_id", "")))
+                c = _extract_confidence(f)
+                conf_str = f"{c:.0f}%" if c is not None else "—"
+                comment_body += f"| `{fp}` | {label} | {ln} | {conf_str} |\n"
+            comment_body += "\n"
 
-            comment_body += f"- **{file_path}:{start_line}** – {message}\n"
-            comment_body += f"  - Rule: `{check_id}`\n"
-            if cwe or owasp:
-                tags = " | ".join(t for t in [cwe, owasp] if t)
-                comment_body += f"  - CWE/OWASP: `{tags}`\n"
-        if not findings:
-            comment_body += "- No individual findings were attached to this run (check logs for details).\n"
-        comment_body += "\n</details>\n\n"
-
-        # Group findings by file to describe changes.
-        fixes_by_file: dict[str, list[str]] = {}
-        for finding in findings:
-            file_path = finding.get("path", "")
-            check_id = str(finding.get("check_id", "") or "").lower()
-            if file_path not in fixes_by_file:
-                fixes_by_file[file_path] = []
-
-            if "sql" in check_id or "sqli" in check_id:
-                desc = "SQL injection → parameterized query"
-            elif "secret" in check_id or "password" in check_id:
-                desc = "Hardcoded secret → environment variable"
-            elif "xss" in check_id or "safe" in check_id:
-                desc = "XSS → removed unsafe pattern / added escaping"
-            elif "command" in check_id:
-                desc = "Command injection → safe subprocess usage"
-            elif "path" in check_id or "traversal" in check_id:
-                desc = "Path traversal → added path validation"
-            elif "ssrf" in check_id:
-                desc = "SSRF → URL validation guidance"
-            elif "eval" in check_id:
-                desc = "Dangerous eval → safer alternative recommended"
-            elif "innerhtml" in check_id or "dom" in check_id:
-                desc = "DOM XSS → `textContent` / safer DOM updates"
-            else:
-                desc = "Security fix applied"
-
-            fixes_by_file[file_path].append(desc)
-
-        # What changed (collapsible, per file)
-        comment_body += "<details>\n"
-        comment_body += "<summary><strong>What changed (per file)</strong></summary>\n\n"
-        if files_fixed:
-            for file_path in files_fixed:
-                safe_path = _sanitize_file_path(file_path)
-                descriptions = fixes_by_file.get(file_path, ["Security fix applied"])
-                unique_descs = list(dict.fromkeys(descriptions))
-
-                comment_body += f"- `{safe_path}`\n"
-                for desc in unique_descs:
-                    comment_body += f"  - {desc}\n"
-        else:
-            comment_body += "- No files were reported as changed.\n"
-        comment_body += "\n</details>\n\n"
-
-        # Patch preview (collapsed) - limit to top N hunks
+        # Patch preview — top N hunks
         if patch_hunks:
-            comment_body += "<details>\n"
-            comment_body += "<summary><strong>What changed (patch preview)</strong></summary>\n\n"
             limited = patch_hunks[: max_hunks if max_hunks > 0 else 5]
+            comment_body += "<details>\n"
+            comment_body += "<summary><strong>Patch preview</strong></summary>\n\n"
             for hunk in limited:
                 safe_hunk = _sanitize_code_block(hunk, max_length=1200)
                 comment_body += "```diff\n" + safe_hunk + "\n```\n\n"
@@ -230,42 +341,13 @@ def create_fix_comment(
                 comment_body += f"_Showing {len(limited)} of {len(patch_hunks)} hunks._\n\n"
             comment_body += "</details>\n\n"
 
-        # Safety rails explanation (collapsible)
-        comment_body += "<details>\n"
-        comment_body += "<summary><strong>Safety rails & guarantees</strong></summary>\n\n"
-        comment_body += "- **Minimal diffs:** Fixpoint analyzes the git diff and rejects large, unfocused patches.\n"
-        comment_body += "- **No bulk refactors:** Formatting guards cap how much code style can change in a single run.\n"
-        comment_body += "- **Deterministic rules:** The same input always produces the same patch; no AI-generated code paths.\n"
-        comment_body += "- **Time & scope limits:** Long-running or out-of-scope analyses degrade to report-only rather than risky changes.\n"
-        comment_body += "- **Baseline-aware reporting:** Existing, known issues can be filtered so only *new* problems fail CI.\n"
-        comment_body += "\n</details>\n\n"
+        comment_body += "---\n"
+        comment_body += "_Railo — automated security fixes. Please review before merging._"
 
-        # Quick actions section
-        comment_body += "### Quick actions\n\n"
-        comment_body += "- Review the PR diff above and leave comments on any fix you want to adjust.\n"
-        comment_body += "- Tune rules and severities in `.fixpoint.yml` (see the [configuration guide](https://github.com/IWEBai/fixpoint#quick-start)).\n"
-        comment_body += "- Start in `mode: warn` and graduate to `enforce` once you're comfortable with the patches.\n\n"
-
-        # How to revert
-        comment_body += "### How to revert this patch set\n\n"
-        comment_body += "If you need to revert this Fixpoint run entirely:\n\n"
-        comment_body += "```bash\n"
-        comment_body += "git revert HEAD\n"
-        comment_body += "git push\n"
-        comment_body += "```\n"
-
-        comment_body += "\n---\n"
-        comment_body += "*This fix was applied automatically by Fixpoint. "
-        comment_body += "Please review the changes before merging.*"
-        comment_body += "\n\n**[Using Fixpoint?](https://github.com/IWEBai/fixpoint#using-fixpoint) Let us know — we'd love your feedback.**"
-        
-        # Post comment
         comment = pr.create_issue_comment(comment_body)
         return comment.html_url
-        
     except Exception as e:
-        # Log error but don't fail the whole process
-        print(f"Warning: Failed to post PR comment: {e}")
+        logger.warning("Failed to post fix comment: %s", e)
         return ""
 
 
@@ -278,6 +360,7 @@ def create_warn_comment(
     fork_notice: str = "",
     head_sha: Optional[str] = None,
     safety_snippet: Optional[str] = None,
+    token: Optional[str] = None,
 ) -> str:
     """
     Create a PR comment in warn mode (propose fixes without applying).
@@ -292,11 +375,12 @@ def create_warn_comment(
         proposed_fixes: List of proposed fixes (file, line, before, after)
         fork_notice: Optional notice about fork PR downgrade
         head_sha: Current HEAD SHA (for idempotency - updates existing comment if same SHA)
+        token: Optional GitHub token override; falls back to GITHUB_TOKEN env var
     
     Returns:
         Comment URL or empty string if failed
     """
-    token = os.getenv("GITHUB_TOKEN")
+    token = token or os.getenv("GITHUB_TOKEN")
     if not token:
         return ""
     
@@ -308,95 +392,92 @@ def create_warn_comment(
         r = g.get_repo(f"{owner}/{repo}")
         pr = r.get_pull(pr_number)
 
-        # IDEMPOTENCY: Check for existing comment from Fixpoint for this SHA
+        # IDEMPOTENCY: Check for existing Railo comment for this SHA
         existing_comment = None
         if head_sha:
             comments = pr.get_issue_comments()
             for comment in comments:
-                if "Fixpoint" in comment.body and head_sha[:8] in comment.body:
+                if "Railo" in comment.body and head_sha[:8] in comment.body:
                     existing_comment = comment
                     break
 
         total_findings = len(findings)
         total_proposals = len(proposed_fixes)
 
-        comment_body = "## ⚡ Fixpoint - Compliance Check (Warn Mode)\n\n"
-        comment_body += "I found compliance violations in this PR and generated **proposed fixes** without changing your branch.\n\n"
+        # --- Confidence summary ---
+        confs = [c for f in findings for c in [_extract_confidence(f)] if c is not None]
+        avg_conf = round(sum(confs) / len(confs), 1) if confs else None
 
-        comment_body += f"**Summary:** `{total_findings}` finding(s), `{total_proposals}` proposed patch(es). No code was modified.\n\n"
+        # --- Header: simple and scannable ---
+        comment_body = f"## 🔍 Railo found {total_findings} security issue(s)\n\n"
+
+        # Scores inline
+        score_line = "Your branch is **unchanged**."  
+        if avg_conf is not None:
+            score_line += f"  Fix confidence: {_confidence_bar(avg_conf)}"
+        comment_body += score_line + "\n\n"
 
         # Optional trust-contract safety decision snippet
         if safety_snippet:
             comment_body += f"> {safety_snippet}\n\n"
 
-        # What was found (collapsible)
-        comment_body += "<details>\n"
-        comment_body += "<summary><strong>What was found</strong></summary>\n\n"
-        for finding in findings:
-            file_path = _sanitize_file_path(finding.get("path", ""))
-            start_line = int(finding.get("start", {}).get("line", 0))
-            message = _sanitize_for_markdown(
-                finding.get("extra", {}).get("message", "Security violation")
-            )
-            check_id = _sanitize_for_markdown(
-                finding.get("check_id", ""), max_length=100
-            )
-            metadata = finding.get("extra", {}).get("metadata", {}) or {}
-            cwe = metadata.get("cwe", "")
-            owasp = metadata.get("owasp", "")
-
-            comment_body += f"- **{file_path}:{start_line}** – {message}\n"
-            comment_body += f"  - Rule: `{check_id}`\n"
-            if cwe or owasp:
-                tags = " | ".join(t for t in [cwe, owasp] if t)
-                comment_body += f"  - CWE/OWASP: `{tags}`\n"
-        if not findings:
-            comment_body += "- No individual findings are attached to this run (see logs/check-run annotations).\n"
-        comment_body += "\n</details>\n\n"
-
-        # Proposed fixes (collapsible, per location)
-        comment_body += "<details>\n"
-        comment_body += "<summary><strong>Proposed patches</strong></summary>\n\n"
+        # --- Before/After blocks — the main content ---
         if proposed_fixes:
+            comment_body += "### Proposed fixes\n\n"
             for fix in proposed_fixes:
                 file_path = _sanitize_file_path(fix.get("file", ""))
                 line = int(fix.get("line", 0))
                 before = _sanitize_code_block(str(fix.get("before", "")).strip())
                 after = _sanitize_code_block(str(fix.get("after", "")).strip())
+                check_id = str(fix.get("check_id", ""))
+                vuln = _vuln_label(check_id)
+                conf = fix.get("confidence")
+                # Per-fix confidence — fall back to finding metadata
+                if conf is None and findings:
+                    for f in findings:
+                        if f.get("path", "") == file_path:
+                            conf = _extract_confidence(f)
+                            break
 
-                comment_body += f"**{file_path}:{line}**\n\n"
-                comment_body += "```diff\n"
-                comment_body += f"- {before}\n"
-                comment_body += f"+ {after}\n"
-                comment_body += "```\n\n"
+                header = f"`{file_path}`" + (f" line {line}" if line else "")
+                if conf is not None:
+                    header += f" — confidence {_confidence_bar(float(conf))}"
+                comment_body += f"**{vuln}** · {header}\n\n"
+                comment_body += "**Before:**\n"
+                comment_body += f"```python\n{before}\n```\n"
+                comment_body += "**After:**\n"
+                comment_body += f"```python\n{after}\n```\n\n"
         else:
-            comment_body += "_No concrete patches were generated for this run._\n\n"
-        comment_body += "</details>\n\n"
+            # Fallback: findings table
+            comment_body += "### What was found\n\n"
+            comment_body += "| File | Issue | Line | Confidence |\n"
+            comment_body += "|------|-------|------|-----------|\n"
+            for f in findings:
+                fp = _sanitize_file_path(f.get("path", ""))
+                ln = (f.get("start") or {}).get("line", "")
+                label = _vuln_label(str(f.get("check_id", "")))
+                c = _extract_confidence(f)
+                conf_str = f"{c:.0f}%" if c is not None else "—"
+                comment_body += f"| `{fp}` | {label} | {ln} | {conf_str} |\n"
+            comment_body += "\n"
 
-        # Safety & behavior explanation
-        comment_body += "<details>\n"
-        comment_body += "<summary><strong>Why this is warn mode</strong></summary>\n\n"
-        comment_body += "- Fixpoint is currently running in **warn mode**, so it **never pushes commits** to your branch.\n"
-        comment_body += "- You can use this mode to tune rules and verify patch quality before enabling auto-fix (enforce mode).\n"
-        comment_body += "- Proposed patches respect the same safety rails as enforce mode: minimal, deterministic changes only.\n"
-        comment_body += "\n</details>\n\n"
-
-        # Next steps / quick actions
-        comment_body += "### Next steps\n\n"
-        comment_body += "- **Apply manually:** Use the diffs above to patch files in this PR.\n"
-        comment_body += "- **Tweak configuration:** Adjust rules and severities in `.fixpoint.yml` (see the [configuration guide](https://github.com/IWEBai/fixpoint#quick-start)).\n"
-        comment_body += "- **Enable enforce mode:** Set `mode: enforce` in your workflow or `FIXPOINT_MODE=enforce` in the environment once you trust the patches.\n\n"
+        # --- How to apply / next steps ---
+        comment_body += "### Apply these fixes\n\n"
+        comment_body += "| Option | How |\n"
+        comment_body += "|--------|-----|\n"
+        comment_body += "| **Auto-apply** | Switch to `fix` mode and Railo opens a fix PR automatically |\n"
+        comment_body += "| **Apply manually** | Copy the diffs above into your editor |\n"
+        comment_body += "| **Dismiss** | Add `# railo: ignore` on the flagged line |\n"
+        comment_body += "\n"
 
         if fork_notice:
             comment_body += fork_notice + "\n\n"
 
-        comment_body += "---\n"
-        comment_body += "*This is warn mode – no changes were applied automatically. "
-        comment_body += "Review the suggestions and apply manually, or enable enforce mode when ready.*"
-        comment_body += "\n\n**[Using Fixpoint?](https://github.com/IWEBai/fixpoint#using-fixpoint) Let us know — we'd love your feedback.**"
-
         if head_sha:
             comment_body += f"\n\n*Commit: `{head_sha[:8]}`*"
+
+        comment_body += "\n---\n"
+        comment_body += "_Railo — automated security fixes. Your branch was not modified._"
 
         # IDEMPOTENCY: Update existing comment or create new one
         if existing_comment:
@@ -407,7 +488,7 @@ def create_warn_comment(
             return comment.html_url
         
     except Exception as e:
-        print(f"Warning: Failed to post warn comment: {e}")
+        logger.warning("Failed to post warn comment: %s", e)
         return ""
 
 
@@ -445,30 +526,30 @@ def create_error_comment(
 
         safe_message = _sanitize_for_markdown(message)
 
-        comment_body = "## ⚠️ Fixpoint - Action Required\n\n"
+        comment_body = "## ⚠️ Railo — Action Required\n\n"
 
         if error_type == "permissions":
-            comment_body += "I detected security violations but **couldn't push fixes** due to permission issues.\n\n"
-            comment_body += "**Action required:** Ensure the Fixpoint GitHub App / workflow token has `contents: write` on this branch.\n\n"
+            comment_body += "Railo detected security issues but **couldn't open a fix PR** due to permission issues.\n\n"
+            comment_body += "**Action required:** Ensure the Railo GitHub App token has `contents: write` on this repository.\n\n"
         elif error_type == "branch_protection":
-            comment_body += "I detected security violations but **couldn't push fixes** due to branch protection rules.\n\n"
-            comment_body += "**Action required:** Either temporarily allow this workflow to push to the branch, or apply the suggested fixes manually.\n\n"
+            comment_body += "Railo detected security issues but **couldn't push the fix branch** due to branch protection rules.\n\n"
+            comment_body += "**Action required:** Allow Railo's token to push to this repository, or apply the suggested fixes manually from the check-run annotations.\n\n"
         else:
-            comment_body += "I detected security violations but encountered an unexpected issue while trying to apply fixes.\n\n"
+            comment_body += "Railo detected security issues but encountered an unexpected problem while preparing the fix PR.\n\n"
 
         comment_body += f"**Details:** {safe_message}\n\n"
 
         comment_body += "### Suggested next steps\n\n"
-        comment_body += "- Review the check-run annotations and PR diff to understand what would have been changed.\n"
-        comment_body += "- Verify repository and branch protection settings for this workflow/token.\n"
-        comment_body += "- Consult the [Fixpoint documentation](https://github.com/IWEBai/fixpoint#quick-start) for required permissions.\n\n"
+        comment_body += "- Review the check-run annotations on the **Files changed** tab for affected lines.\n"
+        comment_body += "- Verify the Railo GitHub App has the required repository permissions.\n"
+        comment_body += "- See the [Railo docs](https://app.railo.dev/docs) for the permissions required.\n\n"
 
         comment_body += "---\n"
-        comment_body += "*This message was generated by Fixpoint to explain why automatic fixes could not be applied.*"
+        comment_body += "_Railo — automated security fixes._"
 
         comment = pr.create_issue_comment(comment_body)
         return comment.html_url
         
     except Exception as e:
-        print(f"Warning: Failed to post error comment: {e}")
+        logger.warning("Failed to post error comment: %s", e)
         return ""

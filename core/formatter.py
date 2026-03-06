@@ -8,10 +8,13 @@ Formatting is **best-effort** and intentionally conservative:
 """
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Tuple, Literal
 import subprocess
 import difflib
+
+logger = logging.getLogger(__name__)
 
 
 FormatterLanguage = Literal["python", "javascript", "typescript", "unknown"]
@@ -44,7 +47,7 @@ def _run_black(repo_path: Path, file_path: Path) -> bool:
         # black not installed – silently skip
         return False
     except subprocess.CalledProcessError as e:
-        print(f"Warning: black failed on {file_path}: {e}")
+        logger.warning("black failed on %s: %s", file_path, e)
         return False
 
 
@@ -63,7 +66,7 @@ def _run_ruff_format(repo_path: Path, file_path: Path) -> bool:
         # ruff not installed – silently skip
         return False
     except subprocess.CalledProcessError as e:
-        print(f"Warning: ruff format failed on {file_path}: {e}")
+        logger.warning("ruff format failed on %s: %s", file_path, e)
         return False
 
 
@@ -81,7 +84,7 @@ def _run_prettier_bin(repo_path: Path, file_path: Path) -> bool:
     except FileNotFoundError:
         return False
     except subprocess.CalledProcessError as e:
-        print(f"Warning: prettier failed on {file_path}: {e}")
+        logger.warning("prettier (bin) failed on %s: %s", file_path, e)
         return False
 
 
@@ -105,7 +108,7 @@ def _run_prettier(repo_path: Path, file_path: Path) -> bool:
         # Node / prettier not available – skip
         return False
     except subprocess.CalledProcessError as e:
-        print(f"Warning: prettier failed on {file_path}: {e}")
+        logger.warning("prettier (npx) failed on %s: %s", file_path, e)
         return False
 
 

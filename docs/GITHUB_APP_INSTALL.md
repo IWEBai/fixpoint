@@ -4,7 +4,7 @@ Install Fixpoint on your GitHub organization or personal account with one click.
 
 ## Direct Install
 
-**[Install Fixpoint](https://github.com/apps/fixpoint-security/installations/new)**
+**[Install Railo](https://github.com/apps/railo-cloud/installations/new)**
 
 1. Click the link above.
 2. Choose which repositories to install (all repos, or select specific ones).
@@ -16,11 +16,11 @@ That's it. Fixpoint will start scanning pull requests in the repositories you se
 
 Fixpoint requests:
 
-| Permission | Purpose |
-|------------|---------|
-| **Contents** (read/write) | Clone repos, apply fixes, push commits |
-| **Pull requests** (read/write) | Post comments, read PR diffs |
-| **Statuses** (read/write) | Set compliance status checks |
+| Permission                     | Purpose                                |
+| ------------------------------ | -------------------------------------- |
+| **Contents** (read/write)      | Clone repos, apply fixes, push commits |
+| **Pull requests** (read/write) | Post comments, read PR diffs           |
+| **Statuses** (read/write)      | Set compliance status checks           |
 
 ## What Happens After Install
 

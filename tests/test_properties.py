@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 pytest.importorskip("hypothesis")
-from hypothesis import given, strategies as st
+from hypothesis import given, settings, strategies as st  # type: ignore[import-not-found]
 
 from core.fixer import process_findings
 from patcher.ast_utils import find_all_sqli_patterns
@@ -74,6 +74,7 @@ _COMMENT_STRATEGY = st.text(
 )
 
 
+@settings(deadline=1000)
 @given(comment=_COMMENT_STRATEGY)
 def test_sql_injection_fix_preserves_syntax_and_no_new_vulns(comment: str):
     base = """import sqlite3

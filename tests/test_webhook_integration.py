@@ -19,11 +19,15 @@ class TestWebhookIntegration:
     """Integration tests for webhook processing flow."""
     
     @pytest.fixture
-    def app(self):
-        """Create Flask test client."""
+    def app(self, tmp_path):
+        """Create Flask test client with an isolated temp DB so delivery IDs don't leak."""
+        from core.db import set_db_path, init_db
+        set_db_path(tmp_path / "test_webhook.db")
+        init_db()
         from webhook.server import app
         app.config['TESTING'] = True
-        return app.test_client()
+        yield app.test_client()
+        set_db_path(None)
     
     @pytest.fixture
     def valid_pr_payload(self):
@@ -76,7 +80,7 @@ class TestWebhookIntegration:
         """Landing page should return 200 and contain install CTA."""
         response = app.get('/')
         assert response.status_code == 200
-        assert b'Install Fixpoint' in response.data or b'install' in response.data.lower()
+        assert b'Install Railo' in response.data or b'install' in response.data.lower()
 
     def test_privacy_page(self, app):
         """Privacy policy page should return 200."""
@@ -91,7 +95,16 @@ class TestWebhookIntegration:
         if response.status_code == 200:
             assert b'Dashboard' in response.data
     
-    @patch.dict(os.environ, {"SKIP_WEBHOOK_VERIFICATION": "true"})
+    @patch.dict(
+        os.environ,
+        {
+            "SKIP_WEBHOOK_VERIFICATION": "true",
+            "WEBHOOK_SECRET": "",
+            "GITHUB_WEBHOOK_SECRET": "",
+            "GITHUB_APP_WEBHOOK_SECRET": "",
+        },
+        clear=False,
+    )
     def test_webhook_rejects_invalid_event_type(self, app, valid_pr_payload):
         """Should reject non-pull_request events."""
         response = app.post(
@@ -107,7 +120,16 @@ class TestWebhookIntegration:
         assert response.status_code == 401
         assert "not allowed" in response.json.get('error', '').lower()
     
-    @patch.dict(os.environ, {"SKIP_WEBHOOK_VERIFICATION": "true"})
+    @patch.dict(
+        os.environ,
+        {
+            "SKIP_WEBHOOK_VERIFICATION": "true",
+            "WEBHOOK_SECRET": "",
+            "GITHUB_WEBHOOK_SECRET": "",
+            "GITHUB_APP_WEBHOOK_SECRET": "",
+        },
+        clear=False,
+    )
     def test_webhook_accepts_pull_request_event(self, app, valid_pr_payload):
         """Should accept pull_request events."""
         with patch('webhook.server.process_pr_webhook') as mock_process:
@@ -125,7 +147,16 @@ class TestWebhookIntegration:
             
             assert response.status_code == 200
     
-    @patch.dict(os.environ, {"SKIP_WEBHOOK_VERIFICATION": "true"})
+    @patch.dict(
+        os.environ,
+        {
+            "SKIP_WEBHOOK_VERIFICATION": "true",
+            "WEBHOOK_SECRET": "",
+            "GITHUB_WEBHOOK_SECRET": "",
+            "GITHUB_APP_WEBHOOK_SECRET": "",
+        },
+        clear=False,
+    )
     def test_webhook_ignores_closed_action(self, app, valid_pr_payload):
         """Should ignore PR closed action."""
         valid_pr_payload["action"] = "closed"
@@ -191,26 +222,41 @@ class TestWebhookIntegration:
                 
                 assert response.status_code == 200
     
-    def test_webhook_rejects_invalid_json(self):
+    def test_webhook_rejects_invalid_json(self, tmp_path):
         """Should reject invalid JSON payload."""
-        with patch.dict(os.environ, {"SKIP_WEBHOOK_VERIFICATION": "true"}):
-            # Reload the module to pick up the env var change
-            import webhook.server
-            importlib.reload(webhook.server)
-            
-            app = webhook.server.app.test_client()
-            
-            response = app.post(
-                '/webhook',
-                data='not valid json',
-                headers={
-                    'Content-Type': 'application/json',
-                    'X-GitHub-Event': 'pull_request',
-                    'X-GitHub-Delivery': 'test-delivery-6',
-                }
-            )
-            
-            assert response.status_code == 400
+        from core.db import set_db_path, init_db
+        set_db_path(tmp_path / "test_inv_json.db")
+        init_db()
+        try:
+            with patch.dict(
+                os.environ,
+                {
+                    "SKIP_WEBHOOK_VERIFICATION": "true",
+                    "WEBHOOK_SECRET": "",
+                    "GITHUB_WEBHOOK_SECRET": "",
+                    "GITHUB_APP_WEBHOOK_SECRET": "",
+                },
+                clear=False,
+            ):
+                # Reload the module to pick up the env var change
+                import webhook.server
+                importlib.reload(webhook.server)
+                
+                app = webhook.server.app.test_client()
+                
+                response = app.post(
+                    '/webhook',
+                    data='not valid json',
+                    headers={
+                        'Content-Type': 'application/json',
+                        'X-GitHub-Event': 'pull_request',
+                        'X-GitHub-Delivery': 'test-delivery-6',
+                    }
+                )
+                
+                assert response.status_code == 400
+        finally:
+            set_db_path(None)
 
 
 class TestRepoAllowlistDenylist:

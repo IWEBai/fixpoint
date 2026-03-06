@@ -1,0 +1,261 @@
+:root {
+  color-scheme: dark;
+  --bg: #0b0f14;
+  --bg-2: #121826;
+  --card: rgba(19, 24, 35, 0.86);
+  --text: #e5e7eb;
+  --muted: #9aa4b2;
+  --accent: #f59e0b;
+  --accent-2: #22d3ee;
+  --border: rgba(148, 163, 184, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family:
+    "Space Grotesk",
+    system-ui,
+    -apple-system,
+    sans-serif;
+  background:
+    radial-gradient(
+      circle at 20% 20%,
+      rgba(34, 211, 238, 0.12),
+      transparent 45%
+    ),
+    radial-gradient(
+      circle at 80% 0%,
+      rgba(245, 158, 11, 0.16),
+      transparent 40%
+    ),
+    linear-gradient(160deg, var(--bg), var(--bg-2));
+  color: var(--text);
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--accent-2);
+}
+
+.page {
+  position: relative;
+  min-height: 100vh;
+}
+
+.glow {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 60%,
+    rgba(14, 116, 144, 0.14),
+    transparent 55%
+  );
+}
+
+.shell {
+  position: relative;
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 28px 20px 48px;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 18px;
+  background: rgba(9, 14, 22, 0.72);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  backdrop-filter: blur(8px);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 700;
+}
+
+.brand__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 18px rgba(245, 158, 11, 0.55);
+}
+
+.brand__name {
+  font-size: 1.15rem;
+  letter-spacing: 0.02em;
+}
+
+.brand__tag {
+  font-size: 0.75rem;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.nav__links {
+  display: flex;
+  gap: 14px;
+  font-weight: 500;
+}
+
+.main {
+  margin-top: 28px;
+}
+
+.hero {
+  display: grid;
+  gap: 12px;
+  padding: 28px;
+  border-radius: 18px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow: 0 24px 60px rgba(2, 6, 23, 0.45);
+}
+
+.hero h1 {
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  margin: 0;
+}
+
+.hero p {
+  margin: 0;
+  color: var(--muted);
+  max-width: 640px;
+}
+
+.grid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  margin-top: 20px;
+}
+
+.card {
+  padding: 18px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: rgba(10, 15, 24, 0.76);
+}
+
+.card h3 {
+  margin: 0 0 8px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: linear-gradient(
+    120deg,
+    rgba(245, 158, 11, 0.95),
+    rgba(34, 211, 238, 0.7)
+  );
+  color: #0b0f14;
+  font-weight: 700;
+  border: none;
+}
+
+.button--ghost {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.table th,
+.table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+select,
+input[type="checkbox"] {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-family: "Space Grotesk", system-ui, sans-serif;
+}
+
+input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  padding: 0;
+}
+
+.code-block {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border);
+  padding: 12px;
+  border-radius: 10px;
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  font-size: 0.85rem;
+  overflow-x: auto;
+}
+
+.table th {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.footer {
+  margin-top: 36px;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .nav {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .nav__links {
+    flex-wrap: wrap;
+  }
+}

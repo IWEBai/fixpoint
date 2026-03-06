@@ -35,7 +35,7 @@ def _assert_parses(path: Path) -> None:
 
     if suffix in (".js", ".jsx", ".ts", ".tsx"):
         try:
-            from tree_sitter_languages import get_language, get_parser
+            from tree_sitter_languages import get_parser  # type: ignore[import-untyped]
         except ImportError:
             pytest.skip("tree_sitter_languages not installed; skipping JS/TS parser gate")
 

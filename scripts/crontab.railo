@@ -1,0 +1,12 @@
+# Railo maintenance cron schedule
+# Copy to /etc/cron.d/railo-maintenance (mode 0644, owned by root).
+#
+# Format: minute hour dom month dow user command
+#
+# Adjust FLASK_APP if your gunicorn / uwsgi startup points elsewhere.
+
+# ── Nightly 02:00 UTC ── prune run metadata + delivery-ID dedup records ──────
+0 2 * * * root cd /app && FLASK_APP=webhook.server flask maintenance >> /proc/1/fd/1 2>&1
+
+# ── Daily 07:00 UTC ── flush notification digest queues ──────────────────────
+0 7 * * * root cd /app && FLASK_APP=webhook.server flask flush-digests >> /proc/1/fd/1 2>&1

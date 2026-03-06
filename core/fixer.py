@@ -9,10 +9,13 @@ Supported vulnerability types:
 """
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Optional, Dict, Any
 
 from core.formatter import format_file
+
+logger = logging.getLogger(__name__)
 
 
 # Mapping of vulnerability patterns to fixers
@@ -338,7 +341,7 @@ def _propose_fixer(
             return None
     
     except Exception as e:
-        print(f"Error proposing {fixer_name}: {e}")
+        logger.error("Error proposing %s: %s", fixer_name, e)
         return None
 
 
@@ -392,11 +395,11 @@ def _apply_fixer(fixer_name: str, repo_path: Path, target_relpath: str) -> bool:
             return apply_fix_js_dom_xss(repo_path, target_relpath)
         
         else:
-            print(f"Unknown fixer: {fixer_name}")
+            logger.warning("Unknown fixer: %s", fixer_name)
             return False
-    
+
     except Exception as e:
-        print(f"Error applying {fixer_name}: {e}")
+        logger.error("Error applying %s: %s", fixer_name, e)
         return False
 
 
@@ -433,6 +436,9 @@ def process_findings(
     for finding in findings:
         check_id = finding.get("check_id", "")
         file_path = finding.get("path")
+
+        if not file_path:
+            continue
         
         # Convert absolute path to relative path from repo root
         file_path_obj = Path(file_path)
@@ -512,7 +518,7 @@ def process_findings(
                     file_results[relpath] = file_processed
                 except Exception as e:
                     relpath = futures[future]
-                    print(f"Error processing file {relpath}: {e}")
+                    logger.error("Error processing file %s: %s", relpath, e)
                     # Still add findings for this file (marked as not fixed)
                     file_results[relpath] = []
                     for finding in findings_by_file[relpath]:
@@ -602,7 +608,7 @@ def process_findings(
                 if not success:
                     continue
             except Exception as e:
-                print(f"Warning: formatter failed for {relpath}: {e}")
+                logger.warning("Formatter failed for %s: %s", relpath, e)
                 continue
 
             post_total = _numstat_total_for_file(repo_path, relpath)

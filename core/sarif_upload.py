@@ -6,8 +6,11 @@ Provides a thin wrapper around the
 """
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any, Dict, Optional
+
+logger = logging.getLogger(__name__)
 
 
 def upload_sarif_to_github(
@@ -36,7 +39,7 @@ def upload_sarif_to_github(
     except Exception:
         # Soft-fail when requests is not available; callers should treat
         # this as "best-effort" rather than fatal.
-        print("Warning: requests not installed, skipping SARIF upload")
+        logger.warning("requests not installed, skipping SARIF upload")
         return None
 
     sarif_path = Path(sarif_path)
@@ -45,7 +48,7 @@ def upload_sarif_to_github(
 
     token = github_token or os.getenv("GITHUB_TOKEN")
     if not token:
-        print("Warning: GITHUB_TOKEN not set, skipping SARIF upload")
+        logger.warning("GITHUB_TOKEN not set, skipping SARIF upload")
         return None
 
     try:
@@ -53,7 +56,7 @@ def upload_sarif_to_github(
         gzipped = gzip.compress(raw)
         encoded = base64.b64encode(gzipped).decode("ascii")
     except Exception as e:
-        print(f"Warning: failed to read/compress SARIF file: {e}")
+        logger.warning("Failed to read/compress SARIF file: %s", e)
         return None
 
     payload: Dict[str, Any] = {
@@ -79,16 +82,17 @@ def upload_sarif_to_github(
                 data = {}
             upload_id = data.get("id") or data.get("sarif_id")
             if upload_id:
-                print(f"Uploaded SARIF to GitHub Code Scanning (id={upload_id})")
+                logger.info("Uploaded SARIF to GitHub Code Scanning (id=%s)", upload_id)
             else:
-                print("Uploaded SARIF to GitHub Code Scanning")
+                logger.info("Uploaded SARIF to GitHub Code Scanning")
             return upload_id
-        print(
-            f"Warning: SARIF upload failed with status {resp.status_code}: "
-            f"{resp.text[:500]}"
+        logger.warning(
+            "SARIF upload failed with status %s: %s",
+            resp.status_code,
+            resp.text[:500],
         )
         return None
     except Exception as e:
-        print(f"Warning: SARIF upload request failed: {e}")
+        logger.warning("SARIF upload request failed: %s", e)
         return None
 

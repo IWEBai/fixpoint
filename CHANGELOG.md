@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Open-core boundary note outlining OSS scope vs enterprise-only features.
+- Placeholders for future SaaS/enterprise tracks (`fixpoint-cloud/`, `fixpoint-enterprise/`) and assets docs with a logo placeholder.
+- Telemetry/privacy TODO markers for SaaS-safe metrics and audit logging (metadata-only).
+
+### Changed
+
+- Documentation refresh (README, ROADMAP, project description) to reflect the boundary, test counts, and current beta messaging.
+
 ## [1.1.0] - 2026-02-08
 
 ### Added

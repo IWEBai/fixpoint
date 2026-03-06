@@ -1,4 +1,4 @@
-# Fixpoint Roadmap
+# Railo Roadmap
 
 ## Strategic Path
 
@@ -6,7 +6,7 @@
 
 This roadmap follows the principle: **Don't build the full system immediately. Validate trust first, then expand.**
 
-**Core Framing:** **Outside → Inside the workflow.** Fixpoint moves from after-the-fact scanning to PR-time enforcement.
+**Core Framing:** **Outside → Inside the workflow.** Railo moves from after-the-fact scanning to PR-time enforcement.
 
 ---
 
@@ -27,12 +27,12 @@ This roadmap follows the principle: **Don't build the full system immediately. V
 
 ### Vulnerability Coverage
 
-| Type | Detection | Auto-Fix |
-|------|-----------|----------|
-| SQL Injection | f-string, concat, format, % | ✅ Parameterized queries |
-| Hardcoded Secrets | Passwords, API keys, tokens | ✅ `os.environ.get()` |
-| XSS (Templates) | \|safe, autoescape off | ✅ Remove unsafe filters |
-| XSS (Python) | mark_safe, SafeString | ✅ Replace with escape() |
+| Type              | Detection                   | Auto-Fix                 |
+| ----------------- | --------------------------- | ------------------------ |
+| SQL Injection     | f-string, concat, format, % | ✅ Parameterized queries |
+| Hardcoded Secrets | Passwords, API keys, tokens | ✅ `os.environ.get()`    |
+| XSS (Templates)   | \|safe, autoescape off      | ✅ Remove unsafe filters |
+| XSS (Python)      | mark_safe, SafeString       | ✅ Replace with escape() |
 
 ### Success Metrics
 
@@ -45,26 +45,30 @@ This roadmap follows the principle: **Don't build the full system immediately. V
 
 ## Phase 2 — Inside the Workflow ✅ COMPLETE
 
-**Goal:** Move Fixpoint inside the developer workflow. Enforce merge conditions.
+**Goal:** Move Railo inside the developer workflow. Enforce merge conditions.
 
 **Status:** Complete
 
 ### Core Features
 
 #### 2.1 PR Diff Scanning ✅
+
 - Scan only changed files in PR
 - Focus on new violations
 
 #### 2.2 PR Webhook Listening ✅
+
 - `pull_request.opened` events
 - `pull_request.synchronize` events
 - Real-time remediation
 
 #### 2.3 Push to Existing PR Branch ✅
+
 - Update PR with fix commits
 - Seamless developer experience
 
 #### 2.4 Safety Mechanisms ✅
+
 - **Idempotency** — Prevents re-applying same fix
 - **Loop prevention** — Bot commits don't trigger bot again
 - **Confidence gating** — Only fixes high-confidence findings
@@ -72,11 +76,13 @@ This roadmap follows the principle: **Don't build the full system immediately. V
 #### 2.5 Two-Mode Rollout ✅
 
 **Warn Mode** (default):
+
 - Comments on PR with proposed fixes
 - Sets status check to FAIL
 - No commits made
 
 **Enforce Mode** (opt-in):
+
 - Applies fixes automatically
 - Commits to PR branch
 - Sets status check to PASS
@@ -133,6 +139,12 @@ This roadmap follows the principle: **Don't build the full system immediately. V
 - [ ] Prometheus metrics
 - [ ] Structured logging
 
+### Open-Core Hybrid (plan)
+
+- Clarify OSS core (engine, base fixers, CLI/GitHub Action, baseline, safety rails, SARIF, local config) versus enterprise features (dashboard, policy/exception management, multi-repo analytics, compliance exports, advanced rules, SSO/RBAC, hosted scanning).
+- Reserve directory stubs for future SaaS/enterprise tracks (`fixpoint-cloud/`, `fixpoint-enterprise/`) without affecting current OSS delivery.
+- Keep telemetry metadata-only (installs, runs, rules triggered, warn vs enforce) to respect the threat model and privacy policy.
+
 ### Enterprise Features
 
 - [ ] Multi-repository management
@@ -181,4 +193,4 @@ This roadmap follows the principle: **Don't build the full system immediately. V
 
 ---
 
-*Fixpoint by IWEB — Last updated: February 2026*
+_Fixpoint by IWEB — Last updated: February 2026_

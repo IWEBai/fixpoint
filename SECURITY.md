@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-We release security updates for the **latest major version** of Fixpoint. Please keep your copy or Action reference up to date.
+We release security updates for the **latest major version** of Railo. Please keep your copy or Action reference up to date.
 
 | Version | Supported          |
 | ------- | ------------------ |
@@ -13,20 +13,20 @@ We release security updates for the **latest major version** of Fixpoint. Please
 
 ## Reporting a vulnerability
 
-If you believe you've found a **security vulnerability** in Fixpoint (e.g. in the webhook server, auth, or code execution), please report it responsibly.
+If you believe you've found a **security vulnerability** in Railo (e.g. in the webhook server, auth, or code execution), please report it responsibly.
 
 **Do not** open a public GitHub issue for security-sensitive findings.
 
 ### How to report
 
-1. **Email:** [iwebai.space@gmail.com](mailto:iwebai.space@gmail.com) with subject `[Fixpoint Security]` and a description of the issue.
+1. **Email:** [iwebai.space@gmail.com](mailto:iwebai.space@gmail.com) with subject `[Railo Security]` and a description of the issue.
 2. **Or** use [GitHub Security Advisories](https://github.com/IWEBai/fixpoint/security/advisories/new) (requires a GitHub account).
 
 Include:
 
 - What you did (steps to reproduce).
 - What you expected vs what happened.
-- Your environment (OS, Python version, how you run Fixpoint).
+- Your environment (OS, Python version, how you run Railo).
 
 We'll respond as soon as we can and will work with you on a fix and disclosure timeline.
 
@@ -39,7 +39,7 @@ We'll respond as soon as we can and will work with you on a fix and disclosure t
 
 ---
 
-## Security practices in Fixpoint
+## Security practices in Railo
 
 - Webhook requests are verified with HMAC-SHA256.
 - Replay protection via delivery ID tracking.
@@ -48,4 +48,4 @@ We'll respond as soon as we can and will work with you on a fix and disclosure t
 
 ---
 
-*Fixpoint by [IWEB](https://www.iwebai.space)*
+_Railo by [IWEB](https://www.iwebai.space)_

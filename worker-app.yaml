@@ -1,0 +1,184 @@
+﻿id: /subscriptions/02453eb5-bdac-41d5-943f-c281dfaa310b/resourceGroups/railo-cloud/providers/Microsoft.App/containerapps/railo-worker
+identity:
+  type: UserAssigned
+  userAssignedIdentities:
+    /subscriptions/02453eb5-bdac-41d5-943f-c281dfaa310b/resourcegroups/railo-cloud/providers/Microsoft.ManagedIdentity/userAssignedIdentities/railo-mi:
+      clientId: 4608fcb2-020f-4e7f-a296-d642c124aa11
+      principalId: 3dfa057a-5498-4bd3-9910-fcca94edb10e
+location: East Asia
+name: railo-worker
+properties:
+  configuration:
+    activeRevisionsMode: Single
+    dapr: null
+    identitySettings: []
+    ingress: null
+    maxInactiveRevisions: 100
+    registries:
+      - identity: /subscriptions/02453eb5-bdac-41d5-943f-c281dfaa310b/resourcegroups/railo-cloud/providers/Microsoft.ManagedIdentity/userAssignedIdentities/railo-mi
+        passwordSecretRef: ""
+        server: railoregistry.azurecr.io
+        username: ""
+    revisionTransitionThreshold: null
+    runtime: null
+    secrets:
+      - identity: /subscriptions/02453eb5-bdac-41d5-943f-c281dfaa310b/resourcegroups/railo-cloud/providers/Microsoft.ManagedIdentity/userAssignedIdentities/railo-mi
+        keyVaultUrl: https://railo-kv.vault.azure.net/secrets/pg-conn
+        name: pg-conn
+      - identity: /subscriptions/02453eb5-bdac-41d5-943f-c281dfaa310b/resourcegroups/railo-cloud/providers/Microsoft.ManagedIdentity/userAssignedIdentities/railo-mi
+        keyVaultUrl: https://railo-kv.vault.azure.net/secrets/redis-url
+        name: redis-url
+      - identity: /subscriptions/02453eb5-bdac-41d5-943f-c281dfaa310b/resourcegroups/railo-cloud/providers/Microsoft.ManagedIdentity/userAssignedIdentities/railo-mi
+        keyVaultUrl: https://railo-kv.vault.azure.net/secrets/github-app-id
+        name: github-app-id
+      - identity: /subscriptions/02453eb5-bdac-41d5-943f-c281dfaa310b/resourcegroups/railo-cloud/providers/Microsoft.ManagedIdentity/userAssignedIdentities/railo-mi
+        keyVaultUrl: https://railo-kv.vault.azure.net/secrets/github-private-key
+        name: github-private-key
+      - identity: /subscriptions/02453eb5-bdac-41d5-943f-c281dfaa310b/resourcegroups/railo-cloud/providers/Microsoft.ManagedIdentity/userAssignedIdentities/railo-mi
+        keyVaultUrl: https://railo-kv.vault.azure.net/secrets/github-webhook-secret
+        name: github-webhook-secret
+    service: null
+    targetLabel: ""
+  customDomainVerificationId: FB82BB323EDA31A515762DD4890D33DA36062664858A0CEEF47F78885E2D5CEF
+  delegatedIdentities: []
+  environmentId: /subscriptions/02453eb5-bdac-41d5-943f-c281dfaa310b/resourceGroups/railo-cloud/providers/Microsoft.App/managedEnvironments/railo-env
+  eventStreamEndpoint: https://eastasia.azurecontainerapps.dev/subscriptions/02453eb5-bdac-41d5-943f-c281dfaa310b/resourceGroups/railo-cloud/containerApps/railo-worker/eventstream
+  latestReadyRevisionName: railo-worker--rotate
+  latestRevisionFqdn: ""
+  latestRevisionName: railo-worker--worker-cmd2
+  managedEnvironmentId: /subscriptions/02453eb5-bdac-41d5-943f-c281dfaa310b/resourceGroups/railo-cloud/providers/Microsoft.App/managedEnvironments/railo-env
+  outboundIpAddresses:
+    - 20.24.118.146
+    - 20.24.118.114
+    - 20.239.96.151
+    - 20.24.118.177
+    - 4.191.76.61
+    - 4.191.76.1
+    - 4.144.44.222
+    - 4.144.45.4
+    - 20.6.149.223
+    - 20.6.179.93
+    - 20.255.130.69
+    - 20.2.50.68
+    - 4.144.38.77
+    - 20.255.120.249
+    - 20.255.130.110
+    - 20.255.130.116
+    - 20.2.50.109
+    - 20.255.216.151
+    - 4.192.75.28
+    - 4.144.42.55
+    - 20.255.112.178
+    - 20.255.42.70
+    - 20.255.104.232
+    - 20.255.130.200
+    - 20.255.216.201
+    - 20.239.233.121
+    - 4.144.37.131
+    - 20.255.104.166
+    - 20.255.120.242
+    - 4.191.79.31
+    - 20.239.116.82
+    - 20.239.117.15
+    - 20.239.117.29
+    - 20.239.117.113
+    - 20.247.40.35
+    - 20.6.177.176
+    - 20.255.43.216
+    - 20.239.233.12
+    - 20.247.40.168
+    - 20.255.113.126
+    - 20.255.212.172
+    - 20.255.186.215
+    - 20.6.160.45
+    - 20.239.244.204
+    - 4.144.40.7
+    - 20.239.246.61
+    - 20.255.104.137
+    - 20.239.245.49
+    - 20.6.155.117
+    - 4.191.79.216
+    - 4.192.74.154
+    - 4.192.74.189
+    - 4.192.73.235
+    - 20.239.245.239
+    - 20.255.185.135
+    - 4.144.36.9
+    - 4.144.37.120
+    - 4.144.59.105
+    - 20.6.155.178
+    - 4.192.75.21
+    - 20.195.88.204
+  patchingMode: Automatic
+  provisioningState: Succeeded
+  runningStatus: Running
+  template:
+    containers:
+      - command:
+          - python
+          - -m
+          - fixpoint_cloud.worker
+        env:
+          - name: DATABASE_URL
+            secretRef: pg-conn
+          - name: REDIS_URL
+            secretRef: redis-url
+          - name: GITHUB_APP_ID
+            secretRef: github-app-id
+          - name: GITHUB_WEBHOOK_SECRET
+            secretRef: github-webhook-secret
+          - name: GITHUB_APP_PRIVATE_KEY
+            secretRef: github-private-key
+          - name: ENGINE_MODE
+            value: live
+          - name: FIXPOINT_MODE
+            value: warn
+          # ── Maintenance schedule ────────────────────────────────────────────
+          # Set MAINTENANCE_CRON_ENABLED=true when running the web-server image
+          # as root (or via a separate Azure Container Apps Job — see below).
+          #
+          # Azure Container Apps Job (recommended for production):
+          #   Schedule trigger: "0 2 * * *"
+          #   Command: ["flask", "maintenance"]
+          #   Env: FLASK_APP=webhook.server, DATABASE_URL, REDIS_URL (same secrets)
+          #
+          # Azure Container Apps Job for digest flush:
+          #   Schedule trigger: "0 7 * * *"
+          #   Command: ["flask", "flush-digests"]
+          - name: FLASK_APP
+            value: webhook.server
+          - name: RUN_RETENTION_DAYS
+            value: "90"
+          - name: MAINTENANCE_CRON_ENABLED
+            value: "false"
+          - name: RAILO_NOTIF_THROTTLE
+            value: "5"
+        image: railoregistry.azurecr.io/railo-worker:v0226j
+        imageType: ContainerImage
+        name: railo-worker
+        resources:
+          cpu: 0.5
+          ephemeralStorage: 2Gi
+          memory: 1Gi
+    customMetricsSettings: null
+    initContainers: null
+    revisionSuffix: prod4
+    scale:
+      cooldownPeriod: 300
+      maxReplicas: 10
+      minReplicas: 1
+      pollingInterval: 30
+      rules: null
+    serviceBinds: null
+    terminationGracePeriodSeconds: 600
+    volumes: null
+  workloadProfileName: Consumption
+resourceGroup: railo-cloud
+systemData:
+  createdAt: "2026-02-22T19:16:24.7436131"
+  createdBy: zariflatif1001@outlook.com
+  createdByType: User
+  lastModifiedAt: "2026-02-26T01:37:11.4798139"
+  lastModifiedBy: zariflatif1001@outlook.com
+  lastModifiedByType: User
+type: Microsoft.App/containerApps

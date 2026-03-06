@@ -1,0 +1,113 @@
+name: e2e-compose
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Write .env for compose
+        run: |
+          cat > fixpoint-cloud/.env <<'EOF'
+          POSTGRES_USER=fixpoint
+          POSTGRES_PASSWORD=fixpoint
+          POSTGRES_DB=fixpoint
+          REDIS_URL=redis://redis:6379/0
+          DATABASE_URL=postgresql+psycopg://fixpoint:fixpoint@postgres:5432/fixpoint
+          ENGINE_MODE=stub
+          FIXPOINT_MODE=warn
+          ENGINE_VERSION=ci-e2e
+          WEBHOOK_SECRET=devsecret
+          SKIP_WEBHOOK_VERIFICATION=true
+          NEXT_PUBLIC_API_BASE_URL=http://api:8000
+          EOF
+
+      - name: Build and start stack
+        run: |
+          docker compose -f fixpoint-cloud/docker-compose.yml up -d --build
+
+      - name: Wait for API health
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:8000/health > /dev/null; then
+              echo "API healthy"; exit 0; fi
+            echo "waiting for API ($i)"; sleep 5;
+          done
+          echo "API not healthy in time"; exit 1
+
+      - name: Post webhook fixture
+        run: |
+          SIG=$(openssl dgst -sha256 -hmac devsecret fixpoint-cloud/fixtures/pull_request.json | awk '{print $2}')
+          curl -s -o /tmp/webhook.log -w "%{http_code}" -X POST \
+            http://localhost:8000/webhook \
+            -H "X-GitHub-Event: pull_request" \
+            -H "X-Hub-Signature-256: sha256=$SIG" \
+            -H "X-GitHub-Delivery: e2e-ci" \
+            -H "Content-Type: application/json" \
+            --data-binary @fixpoint-cloud/fixtures/pull_request.json \
+            | grep -q "^2" || (echo "Webhook failed" && cat /tmp/webhook.log && exit 1)
+
+        - name: Poll runs and assert fields
+        run: |
+          python - <<'PY'
+          import json, os, sys, time, urllib.request
+
+          url = "http://localhost:8000/runs"
+          expected_engine_version = os.environ.get("ENGINE_VERSION", "ci-e2e")
+
+          def assert_relative_artifacts(paths):
+            if not paths:
+              return
+            for name, val in paths.items():
+              if not isinstance(val, str):
+                raise AssertionError(f"artifact_paths[{name}] not a string: {val!r}")
+              if val.startswith("/") or val.startswith("/tmp"):
+                raise AssertionError(f"artifact path absolute: {val}")
+              if ":" in val:
+                raise AssertionError(f"artifact path contains colon (likely host path): {val}")
+
+          def assert_run_fields(run):
+            status = run.get("status")
+            if status in {"failed", "error"}:
+              raise AssertionError(f"run status indicates failure: {status}")
+            if not run.get("fingerprint"):
+              raise AssertionError("fingerprint missing")
+            if run.get("engine_version") != expected_engine_version:
+              raise AssertionError(
+                f"engine_version mismatch: {run.get('engine_version')} != {expected_engine_version}"
+              )
+            assert_relative_artifacts(run.get("artifact_paths"))
+            if run.get("error_code") not in (None, ""):
+              raise AssertionError(f"error_code present: {run.get('error_code')}")
+
+          for attempt in range(30):
+              try:
+                  with urllib.request.urlopen(url, timeout=5) as resp:
+                      data = json.load(resp)
+                  runs = data.get("runs", [])
+                  if runs:
+                latest = runs[0]
+                assert_run_fields(latest)
+                print(
+                  "Found run with status="
+                  f"{latest.get('status')} engine_version={latest.get('engine_version')}"
+                )
+                      sys.exit(0)
+              except Exception as exc:  # noqa: BLE001
+                  print(f"poll {attempt}: {exc}")
+              time.sleep(5)
+          print("No runs found after polling")
+          sys.exit(1)
+          PY
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f fixpoint-cloud/docker-compose.yml down -v

@@ -1,21 +1,21 @@
-# Fixpoint by IWEB
+# Railo by IWEB
 
 **Auto-fix security vulnerabilities in your PRs.**
 
-Fixpoint is a deterministic security patch bot that enforces compliance at merge time—so security findings become merged fixes, not backlog.
+Railo is a deterministic security patch bot that enforces compliance at merge time—so security findings become merged fixes, not backlog.
 
-As AI increases PR volume, Fixpoint keeps security debt at zero: every finding gets a fix, every fix gets merged.
+As AI increases PR volume, Railo keeps security debt at zero: every finding gets a fix, every fix gets merged.
 
 **Positioning:** _The fixed point in your workflow where security issues are detected and corrected before merge—no AI, no wait, no backlog._
 
-[![Tests](https://img.shields.io/badge/tests-133%20passed-brightgreen)](https://github.com/IWEBai/fixpoint)
+[![Tests](https://img.shields.io/badge/tests-151%20passed-brightgreen)](https://github.com/IWEBai/fixpoint)
 [![Python](https://img.shields.io/badge/python-3.12+-blue)](https://python.org)
 [![License](https://img.shields.io/badge/license-MIT-green)](./LICENSE)
 [![Marketplace](https://img.shields.io/badge/GitHub-Marketplace-blue)](https://github.com/marketplace/actions/fixpoint-auto-fix-security-vulnerabilities)
 
-> **Try it now!** Fork the [demo repository](https://github.com/IWEBai/fixpoint-demo) to see Fixpoint in action.
+> **Try it now!** Fork the [demo repository](https://github.com/IWEBai/fixpoint-demo) to see Railo in action.
 
-**Install as GitHub App (free beta):** [Install Fixpoint](https://github.com/apps/fixpoint-security/installations/new) — one-click install for your org or repos.
+**Install as GitHub App (free beta):** [Install Railo](https://github.com/apps/railo-cloud/installations/new) — one-click install for your org or repos.
 
 ---
 
@@ -23,20 +23,31 @@ As AI increases PR volume, Fixpoint keeps security debt at zero: every finding g
 
 **Free beta for early adopters.** No billing, no Marketplace signup—just install and go.
 
-We're inviting early users to test Fixpoint before wider release.
+We're inviting early users to test Railo before wider release.
 
 | What to expect | Details                                                                                                                                                                      |
 | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Stability**  | Core flows tested; 133 tests pass. Some edge cases may remain.                                                                                                               |
+| **Stability**  | Core flows tested; 151 tests pass (3 skipped for Semgrep on Windows). Some edge cases may remain.                                                                            |
 | **Platforms**  | GitHub Action & CLI: Linux, Mac. Semgrep: not supported on Windows.                                                                                                          |
 | **Modes**      | Start with `mode: warn` — review proposed fixes before enabling enforce.                                                                                                     |
 | **Feedback**   | Report issues, awkward workflows, or "how do I...?" in [Discussions](https://github.com/IWEBai/fixpoint/discussions) or [Issues](https://github.com/IWEBai/fixpoint/issues). |
 
-**Quick test:** Fork [fixpoint-demo](https://github.com/IWEBai/fixpoint-demo), add the workflow from [Quick Start](#quick-start), open a PR with vulnerable code. Fixpoint will comment or fix.
+**Quick test:** Fork [fixpoint-demo](https://github.com/IWEBai/fixpoint-demo), add the workflow from [Quick Start](#quick-start), open a PR with vulnerable code. Railo will comment or fix.
 
 **Support:** [support@fixpoint.dev](mailto:support@fixpoint.dev) · **Privacy:** [Privacy Policy](./docs/PRIVACY_POLICY.md)
 
 See [Beta Tester Notes](./docs/BETA_TESTER_NOTES.md) for full release notes and feedback prompts.
+
+---
+
+## How Fix PRs Work (Phase 1)
+
+- Railo scans the PR branch but never commits to it in enforce mode.
+- If fixes are safe, Railo creates a **new branch** (`railo/fix-...`) from the current PR state.
+- Railo opens a separate **Fix PR → base branch** with all fixes applied.
+- The original PR stays untouched; developers can merge the Fix PR independently.
+
+Why this matters: Developers feel helped, not interrupted—just like Dependabot fix PRs.
 
 ---
 
@@ -63,6 +74,12 @@ See [Beta Tester Notes](./docs/BETA_TESTER_NOTES.md) for full release notes and 
 - **No AI/LLM for fixes:** All fixes are rule-based and auditable.
 - **Trust through transparency:** Start in warn mode, graduate to enforce when ready.
 - **Safety over speed:** Max-diff limits, optional test run, CWE/OWASP tags in every finding.
+
+## Open-Core Boundary (short)
+
+- **OSS (adoption engine):** scanning engine, deterministic base fixers/rules, GitHub Action/CLI, baseline mode, safety rails, SARIF export, local config (`.fixpoint.yml`).
+- **Enterprise (reserved):** org dashboard, policy/exception UI, multi-repo analytics, compliance exports (SOC2/ISO), advanced rule packs, centralized exceptions, SSO/RBAC, hosted scanning service.
+- Core remains MIT-licensed; future SaaS/enterprise code will live under `fixpoint-cloud/` and `fixpoint-enterprise/`.
 
 ---
 

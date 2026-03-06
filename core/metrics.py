@@ -2,17 +2,22 @@
 Metrics collection for Fixpoint.
 Logs metrics, exports CSV, generates email reports.
 NO DASHBOARD - Data > Dashboards (early-stage).
+
+Telemetry policy: track only metadata (installs, run counts, rule IDs, warn/enforce
+counts). Never include source code, secret names, or file contents. See docs/THREAT_MODEL.md.
 """
 from __future__ import annotations
 
 import csv
 import json
+import logging
 from pathlib import Path
 from datetime import datetime, timezone
 from typing import Dict, List, Optional, Iterable
 
 from core.observability import log_processing_result
 
+logger = logging.getLogger(__name__)
 
 # In-memory metrics store (in production, use database)
 _metrics_store: List[Dict] = []
@@ -29,6 +34,7 @@ def record_metric(
     metadata: Optional[Dict] = None,
     installation_id: Optional[int] = None,
     correlation_id: Optional[str] = None,
+    vuln_types: Optional[list] = None,
 ) -> None:
     """
     Record a metric event.
@@ -42,6 +48,7 @@ def record_metric(
         mode: "warn" or "enforce"
         status: "success", "failure", "warn_mode", etc.
         metadata: Additional metadata dict
+        vuln_types: List of vulnerability category labels (e.g. ["SQLi", "XSS"])
     """
     metric = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -69,9 +76,26 @@ def record_metric(
                 violations_found=violations_found,
                 violations_fixed=violations_fixed,
                 correlation_id=correlation_id,
+                vuln_types=vuln_types,
             )
         except Exception as e:
             log_processing_result("metrics", "db_error", f"Failed to persist run: {e}")
+
+    # Trigger notifications for notable events
+    if installation_id is not None and event_type == "fix_applied":
+        try:
+            from core.notifications import send_notification
+            send_notification(
+                event="fix_applied",
+                data={
+                    "repo": repo,
+                    "pr_url": (metadata or {}).get("fix_pr_url", ""),
+                    "message": f"{violations_fixed} fix(es) applied",
+                },
+                installation_id=installation_id,
+            )
+        except Exception:
+            pass
     
     # Also log for observability
     log_processing_result(
@@ -113,7 +137,7 @@ def export_metrics_csv(output_path: Path) -> bool:
         
         return True
     except Exception as e:
-        print(f"Error exporting metrics to CSV: {e}")
+        logger.error("Error exporting metrics to CSV: %s", e)
         return False
 
 

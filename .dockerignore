@@ -1,0 +1,65 @@
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+.venv*/
+venv/
+env/
+
+# Test / CI artifacts
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+coverage.xml
+.coverage
+htmlcov/
+
+# Dev config
+.env
+.env.*
+!.env.example
+
+# Docs (not needed in image)
+docs/
+*.md
+!fixpoint-cloud/README.md
+
+# E2E / test data
+_e2e/
+tests/
+fixpoint-cloud/tests/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (web frontend built separately)
+node_modules/
+fixpoint-cloud/web/node_modules/
+.next/
+
+# Helper/temp scripts
+db_check*.py
+check_pr*.py
+test_check_run.py
+
+# Private keys / secrets (never bake into image)
+secrets/

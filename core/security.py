@@ -4,12 +4,17 @@ Handles signature verification, event filtering, and replay protection.
 """
 from __future__ import annotations
 
+import logging
 import os
 import re
 import hmac
 import hashlib
 from typing import Optional, Tuple
 from datetime import datetime, timedelta, timezone
+
+from core.cache import get_redis_client
+
+logger = logging.getLogger(__name__)
 
 
 # In-memory store for processed delivery IDs (in production, use Redis)
@@ -33,9 +38,12 @@ def verify_webhook_signature(payload_body: bytes, signature: str, secret: str) -
         # SECURITY: Always require webhook secret in all environments
         # For local testing only, explicitly set SKIP_WEBHOOK_VERIFICATION=true
         if os.getenv("SKIP_WEBHOOK_VERIFICATION", "").lower() == "true":
-            print("WARNING: SKIP_WEBHOOK_VERIFICATION=true - skipping signature verification (NEVER use in production!)")
+            logger.warning(
+                "SKIP_WEBHOOK_VERIFICATION=true — skipping signature verification "
+                "(NEVER use in production!)"
+            )
             return True
-        print("ERROR: WEBHOOK_SECRET not set - rejecting request")
+        logger.error("WEBHOOK_SECRET not set — rejecting request")
         return False
     
     if not signature:
@@ -96,6 +104,22 @@ def check_replay_protection(delivery_id: str) -> bool:
     if not delivery_id:
         # If no delivery ID, can't protect against replays
         return False
+
+    redis_client = get_redis_client()
+    if redis_client:
+        redis_key = f"railo:delivery:{delivery_id}"
+        try:
+            if redis_client.exists(redis_key):
+                return True
+            redis_client.setex(
+                redis_key,
+                int(DELIVERY_ID_TTL.total_seconds()),
+                datetime.now(timezone.utc).isoformat(),
+            )
+            return False
+        except Exception:
+            # Fall back to in-memory replay protection on Redis errors
+            pass
     
     now = datetime.now(timezone.utc)
     
@@ -105,7 +129,7 @@ def check_replay_protection(delivery_id: str) -> bool:
         if now - last_seen < DELIVERY_ID_TTL:
             return True  # This is a replay
     
-    # Record this delivery
+    # Record this delivery (in-memory fallback)
     _processed_deliveries[delivery_id] = now
     
     # Clean up old entries (simple cleanup - in production use TTL-based store)

@@ -1,6 +1,6 @@
-# Fixpoint Documentation
+# Railo Documentation
 
-Documentation index for Fixpoint by IWEB — auto-fix security vulnerabilities in your PRs.
+Documentation index for Railo by IWEB — auto-fix security vulnerabilities in your PRs.
 
 ---
 
@@ -8,7 +8,7 @@ Documentation index for Fixpoint by IWEB — auto-fix security vulnerabilities i
 
 | Doc                                                 | Description                                 |
 | --------------------------------------------------- | ------------------------------------------- |
-| [Introduction](./INTRODUCTION.md)                   | Why Fixpoint? Vision and approach           |
+| [Introduction](./INTRODUCTION.md)                   | Why Railo? Vision and approach              |
 | [Getting Started](./GETTING_STARTED.md)             | Setup guide for GitHub Action, webhook, CLI |
 | [GitHub App Install](./GITHUB_APP_INSTALL.md)       | One-click install as GitHub App (free beta) |
 | [API Reference](./API_REFERENCE.md)                 | Webhook API, endpoints, payloads            |
@@ -42,15 +42,15 @@ Documentation index for Fixpoint by IWEB — auto-fix security vulnerabilities i
 | [Threat Model](./THREAT_MODEL.md)     | App/SaaS threat model and data minimization |
 | [Privacy Policy](./PRIVACY_POLICY.md) | Data collection, usage, contact             |
 | [Security Policy](../SECURITY.md)     | Vulnerability reporting                     |
-| [Contributing](../CONTRIBUTING.md)    | How to contribute to Fixpoint               |
+| [Contributing](../CONTRIBUTING.md)    | How to contribute to Railo                  |
 
 ---
 
 ## Website Content
 
-| Doc                                     | Description                                                                      |
-| --------------------------------------- | -------------------------------------------------------------------------------- |
-| [Website Content](./WEBSITE_CONTENT.md) | Markdown content for the Fixpoint website (hero, features, install, FAQ, footer) |
+| Doc                                     | Description                                                                   |
+| --------------------------------------- | ----------------------------------------------------------------------------- |
+| [Website Content](./WEBSITE_CONTENT.md) | Markdown content for the Railo website (hero, features, install, FAQ, footer) |
 
 ## Other
 
@@ -65,7 +65,7 @@ Documentation index for Fixpoint by IWEB — auto-fix security vulnerabilities i
 
 ### For Users
 
-- **Getting Started** — How to add Fixpoint to your repo
+- **Getting Started** — How to add Railo to your repo
 - **GitHub App Install** — Easiest path: one-click install
 - **Environment Variables** — Configuration reference
 

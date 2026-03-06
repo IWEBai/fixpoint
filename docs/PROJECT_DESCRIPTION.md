@@ -1,13 +1,13 @@
-# Fixpoint — Full Project Description
+# Railo — Full Project Description
 
-From inception to current stage. A complete, in-detail description of the Fixpoint project by IWEB.
+From inception to current stage. A complete, in-detail description of the Railo project by IWEB.
 
 ---
 
 ## 1. Origin and Naming
 
 - **Earlier name:** The project was originally developed under the name **AuditShield** (or similar). All references to that name were later updated across the codebase.
-- **Current name:** **Fixpoint** — chosen to reflect the product’s role: a fixed point in the development workflow where security issues are detected and corrected before merge.
+- **Current name:** **Railo** — chosen to reflect the product’s role: a fixed point in the development workflow where security issues are detected and corrected before merge.
 - **Organization:** The project is owned and maintained by **IWEB** (GitHub: [IWEBai](https://github.com/IWEBai)). IWEB builds AI, ML, Big Data, and software solutions.
 - **License:** MIT. The code is open for use, modification, and distribution; IWEB retains copyright and the project can be used commercially (including by IWEB as a SaaS or commercial offering).
 
@@ -23,12 +23,12 @@ From inception to current stage. A complete, in-detail description of the Fixpoi
 
 ### The vision
 
-- **Fixpoint** runs at PR time, inside the workflow.
+- **Railo** runs at PR time, inside the workflow.
 - It **detects** well-defined vulnerability patterns and **applies deterministic fixes** (no AI/LLM).
 - Same input → same output. Teams can start in **warn** mode (comments only), then move to **enforce** mode (auto-commit fixes) once they trust the tool.
 - Goal: reduce time-to-merge for security-related fixes from days to minutes, without sacrificing safety or auditability.
 
-### What Fixpoint does *not* do
+### What Railo does _not_ do
 
 - It does not fix arbitrary bugs, refactor code, auto-merge PRs, or generate creative fixes.
 - It does not use AI/LLMs for remediation. All fixes are rule-based and deterministic.
@@ -68,20 +68,23 @@ The roadmap follows: **Simple MVP → Validate trust → Expand scope → CI/CD 
 
 ## 5. Phase 2 — Inside the Workflow (Complete)
 
-**Goal:** Make Fixpoint part of the developer workflow and enforce merge conditions.
+**Goal:** Make Railo part of the developer workflow and enforce merge conditions.
 
 ### Features delivered
 
 - **PR diff scanning:** Only changed files in the PR are scanned.
-- **Webhook handling:** Listens for `pull_request` (opened, synchronize, reopened); runs in real time.
-- **Push to existing PR branch:** Fixes are committed to the PR branch so the author sees one updated branch.
+- **Webhook handling:** Listens for `pull_request` (opened, synchronize); runs in real time via async queue (`RAILO_ENABLE_QUEUE=1`) or synchronously as fallback.
+- **Separate Fix PRs (enforce mode):** Railo never commits to the contributor's branch. Instead it creates a new `railo/fix-<type>-<hash>` branch off the base and opens a dedicated Fix PR—just like Dependabot.
+- **Async queue (RQ + Redis):** Webhook ingests in <100 ms and returns 202. Heavy processing runs in a background worker (`workers/scan_worker.py`) with job lifecycle tracking (queued → processing → completed/failed).
+- **Job deduplication:** Redis-backed dedup by `owner:repo:pr:sha` prevents duplicate runs on rapid pushes.
+- **CI monitor:** After a Fix PR is created, a CI monitor worker (`workers/ci_monitor_worker.py`) polls the combined status and marks `ci_passed` in the DB. Failed checks trigger a PR comment flagging the failure.
 - **Safety:**
   - **Idempotency:** Same fix is not applied twice.
   - **Loop prevention:** Commits from the bot do not trigger another run.
   - **Confidence gating:** Only high-confidence findings are auto-fixed.
 - **Two modes:**
   - **Warn (default):** Post comments with proposed fixes; set status check to FAIL; no commits.
-  - **Enforce:** Apply fixes, commit, set status check to PASS.
+  - **Enforce:** Create separate Fix PR with all fixes applied; comment on original PR with link.
 - **Status check:** `fixpoint/compliance` — PASS when there are no violations or all are fixed; FAIL when violations remain (e.g. in warn mode).
 
 ---
@@ -90,13 +93,13 @@ The roadmap follows: **Simple MVP → Validate trust → Expand scope → CI/CD 
 
 ### Components
 
-| Component | Role |
-|-----------|------|
-| **core/** | Scanner (Semgrep + ignore), fixer orchestration, git ops, status checks, PR comments, safety (idempotency, loop prevention), security (webhook validation, replay protection), rate limiting, observability, metrics. **GitHub App:** `github_app_auth` (JWT → installation token). **Dashboard:** `dashboard_auth` (OAuth login), `db` (SQLite: installations, runs). |
-| **patcher/** | AST-based fixers: SQLi, secrets, XSS (templates and Python), command injection, path traversal, SSRF, JS/TS. Rule-driven, no LLM. |
-| **webhook/** | Flask server that receives GitHub webhooks and triggers the fix pipeline. **Static:** `landing.html`, `privacy.html` — landing page, privacy policy, dashboard UI. |
-| **github_bot/** | Utilities for opening/finding PRs (used by CLI flow). |
-| **rules/** | Semgrep YAML rules (e.g. SQL injection, hardcoded secrets, XSS, command injection, path traversal, SSRF). |
+| Component       | Role                                                                                                                                                                                                                                                                                                                                                                   |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **core/**       | Scanner (Semgrep + ignore), fixer orchestration, git ops, status checks, PR comments, safety (idempotency, loop prevention), security (webhook validation, replay protection), rate limiting, observability, metrics. **GitHub App:** `github_app_auth` (JWT → installation token). **Dashboard:** `dashboard_auth` (OAuth login), `db` (SQLite: installations, runs). |
+| **patcher/**    | AST-based fixers: SQLi, secrets, XSS (templates and Python), command injection, path traversal, SSRF, JS/TS. Rule-driven, no LLM.                                                                                                                                                                                                                                      |
+| **webhook/**    | Flask server that receives GitHub webhooks and triggers the fix pipeline. **Static:** `landing.html`, `privacy.html` — landing page, privacy policy, dashboard UI.                                                                                                                                                                                                     |
+| **github_bot/** | Utilities for opening/finding PRs (used by CLI flow).                                                                                                                                                                                                                                                                                                                  |
+| **rules/**      | Semgrep YAML rules (e.g. SQL injection, hardcoded secrets, XSS, command injection, path traversal, SSRF).                                                                                                                                                                                                                                                              |
 
 ### Entry points
 
@@ -119,13 +122,24 @@ The roadmap follows: **Simple MVP → Validate trust → Expand scope → CI/CD 
 
 ### Webhook server routes
 
-| Route | Purpose |
-|-------|---------|
-| `/` | Landing page (install CTA, free beta messaging) |
-| `/webhook` | GitHub webhook endpoint (POST) |
+| Route        | Purpose                                             |
+| ------------ | --------------------------------------------------- |
+| `/`          | Landing page (install CTA, free beta messaging)     |
+| `/webhook`   | GitHub webhook endpoint (POST)                      |
 | `/dashboard` | Dashboard (OAuth login, installations, recent runs) |
-| `/privacy` | Privacy policy |
-| `/health` | Health check |
+| `/privacy`   | Privacy policy                                      |
+| `/health`    | Health check                                        |
+
+### Open-core boundary and future layout
+
+- **OSS (adoption engine):** scanning engine, deterministic base fixers/rules, CLI/GitHub Action, baseline mode, safety rails, SARIF export, local config (`.fixpoint.yml`).
+- **Enterprise (reserved):** org dashboard, policy/exception management, multi-repo analytics, compliance exports, advanced rule packs, SSO/RBAC, hosted scanning service.
+- **Planned structure:**
+  - `fixpoint/` → core_engine, fixers, cli, github_action (current code lives here)
+  - `fixpoint-cloud/` → future SaaS backend (placeholder)
+  - `fixpoint-enterprise/` → future private modules/rule packs (placeholder)
+
+This boundary preserves the MIT OSS core while reserving commercial modules for later packaging.
 
 ---
 
@@ -146,7 +160,7 @@ The roadmap follows: **Simple MVP → Validate trust → Expand scope → CI/CD 
 
 ### Phase 1 Launch (Backdoor Launch strategy)
 
-- **GitHub App (SaaS):** Direct install URL `github.com/apps/fixpoint-security/installations/new` — one-click install for orgs/repos. No Marketplace signup; free beta.
+- **GitHub App (SaaS):** Direct install URL `github.com/apps/railo-cloud/installations/new` — one-click install for orgs/repos. No Marketplace signup; free beta.
 - **Landing page:** Served at `/` — headline, install CTA, free beta badge, support/privacy links.
 - **Dashboard:** OAuth login (GitHub), installations table, recent runs table. SQLite persistence.
 - **Privacy policy:** Served at `/privacy`; also `docs/PRIVACY_POLICY.md`.
@@ -183,18 +197,18 @@ The roadmap follows: **Simple MVP → Validate trust → Expand scope → CI/CD 
 
 ### What is live today
 
-| Item | Status |
-|------|--------|
-| **GitHub repo** | Public: [IWEBai/fixpoint](https://github.com/IWEBai/fixpoint). |
-| **GitHub Action** | `IWEBai/fixpoint@v1` — usable in any repo with a workflow file. |
-| **GitHub App (SaaS)** | Direct install; installation token auth; handles `pull_request`, `installation`, `installation_repositories`. |
-| **Marketplace** | Listed; users can install from Marketplace. |
-| **Webhook server** | Landing, dashboard (OAuth), privacy, health; SQLite persistence. |
-| **Demo repo** | [IWEBai/fixpoint-demo](https://github.com/IWEBai/fixpoint-demo) — ready to fork and test. |
-| **Documentation** | README; docs index; and detailed docs (Introduction, Getting Started, API_REFERENCE, ENVIRONMENT_VARIABLES, GITHUB_APP_INSTALL, PRIVACY_POLICY, PHASE1_LAUNCH_CHECKLIST, PHASE1_IMPLEMENTATION_PLAN, VERIFICATION_CHECKLIST, BETA_TESTER_NOTES, WEBSITE_CONTENT, ANNOUNCEMENT_TEMPLATES); plus ROADMAP and CHANGELOG. |
-| **Tests** | 133+ tests passing (2 skipped on Windows for Semgrep). |
-| **CI** | Workflows for test, lint, Docker, release. |
-| **Discussions** | Enabled; welcome post and optional “Who’s using Fixpoint?” category. |
+| Item                  | Status                                                                                                                                                                                                                                                                                                                |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **GitHub repo**       | Public: [IWEBai/fixpoint](https://github.com/IWEBai/fixpoint).                                                                                                                                                                                                                                                        |
+| **GitHub Action**     | `IWEBai/fixpoint@v1` — usable in any repo with a workflow file.                                                                                                                                                                                                                                                       |
+| **GitHub App (SaaS)** | Direct install; installation token auth; handles `pull_request`, `installation`, `installation_repositories`.                                                                                                                                                                                                         |
+| **Marketplace**       | Listed; users can install from Marketplace.                                                                                                                                                                                                                                                                           |
+| **Webhook server**    | Landing, dashboard (OAuth), privacy, health; SQLite persistence.                                                                                                                                                                                                                                                      |
+| **Demo repo**         | [IWEBai/fixpoint-demo](https://github.com/IWEBai/fixpoint-demo) — ready to fork and test.                                                                                                                                                                                                                             |
+| **Documentation**     | README; docs index; and detailed docs (Introduction, Getting Started, API_REFERENCE, ENVIRONMENT_VARIABLES, GITHUB_APP_INSTALL, PRIVACY_POLICY, PHASE1_LAUNCH_CHECKLIST, PHASE1_IMPLEMENTATION_PLAN, VERIFICATION_CHECKLIST, BETA_TESTER_NOTES, WEBSITE_CONTENT, ANNOUNCEMENT_TEMPLATES); plus ROADMAP and CHANGELOG. |
+| **Tests**             | 164 tests passing (5 skipped on Windows for Semgrep/fork-process).                                                                                                                                                                                                                                                    |
+| **CI**                | Workflows for test, lint, Docker, release.                                                                                                                                                                                                                                                                            |
+| **Discussions**       | Enabled; welcome post and optional “Who’s using Fixpoint?” category.                                                                                                                                                                                                                                                  |
 
 ### Technical scope (current)
 
@@ -218,7 +232,7 @@ The roadmap follows: **Simple MVP → Validate trust → Expand scope → CI/CD 
 
 ## 9. How People Use Fixpoint
 
-1. **GitHub App (SaaS):** Install from direct URL `github.com/apps/fixpoint-security/installations/new`; Fixpoint runs on every PR in selected repos. No GITHUB_TOKEN needed—installation token auto-generated.
+1. **GitHub App (SaaS):** Install from direct URL `github.com/apps/railo-cloud/installations/new`; Railo runs on every PR in selected repos. No GITHUB_TOKEN needed—installation token auto-generated.
 2. **GitHub Action (primary):** Add a workflow that uses `IWEBai/fixpoint@v1`; Fixpoint runs on every PR (warn or enforce).
 3. **Self-hosted webhook:** Run `webhook_server.py`, point GitHub webhooks at it; same behavior as the Action but on-prem.
 4. **CLI:** Run `main.py` against a repo path (warn or enforce, optional PR-diff mode) for local or scripted use.
@@ -234,8 +248,8 @@ The roadmap follows: **Simple MVP → Validate trust → Expand scope → CI/CD 
 
 ## 11. One-Paragraph Summary
 
-**Fixpoint** is an open-source security auto-fix tool by **IWEB** that runs at pull-request time. It detects SQL injection, hardcoded secrets, XSS, command injection, path traversal, SSRF (Python), and eval, secrets, DOM XSS (JavaScript/TypeScript). It applies **deterministic, rule-based fixes** (no AI). It is delivered as a **GitHub App** (direct install, free beta), a **GitHub Action** (`IWEBai/fixpoint@v1`), a **self-hosted webhook server** (with landing page, dashboard, privacy policy), and a **CLI**. Users can start in **warn** mode (comments only) and move to **enforce** mode (auto-commit fixes). Phase 1, 2, 3A, and 3B are complete; Phase 1 Launch (Backdoor Launch) is in progress. Community links include the IWEB website, Reddit (r/IWEBai), support@fixpoint.dev, and GitHub Discussions.
+**Railo** is an open-source, deterministic security auto-fix tool by **IWEB** that runs at pull-request time. It detects SQL injection, hardcoded secrets, XSS, command injection, path traversal, SSRF (Python), and eval, secrets, DOM XSS (JavaScript/TypeScript). It applies **rule-based fixes with no AI/LLM**—same input always produces the same output. In enforce mode it creates a separate Fix PR (never touching the contributor's branch), with fixes queued asynchronously via RQ + Redis and CI status monitored automatically. It is delivered as a **GitHub App** (direct install, free beta), a **GitHub Action** (`IWEBai/fixpoint@v1`), a **self-hosted webhook server** (with landing page, analytics dashboard, privacy policy), and a **CLI**. Users start in **warn** mode (comments only) and graduate to **enforce** mode (separate Fix PRs). Phases 1, 2, 2.4, and 3 are complete. Community: IWEB website, Reddit (r/IWEBai), support@railo.dev, GitHub Discussions.
 
 ---
 
-*Fixpoint by [IWEB](https://www.iwebai.space) — Project description document. Last updated: February 2026.*
+_Railo by [IWEB](https://www.iwebai.space) — Project description document. Last updated: March 2026._

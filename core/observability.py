@@ -1,6 +1,10 @@
 """
 Observability utilities for Fixpoint.
 Structured logging and correlation IDs for debugging.
+
+Telemetry policy: any future metrics or audit hooks must remain metadata-only
+(no source code content, no secret values). Permitted data: installation IDs,
+rule IDs, counts, durations, boolean outcomes. See docs/THREAT_MODEL.md.
 """
 from __future__ import annotations
 
@@ -120,8 +124,9 @@ def log_audit_event(
     with CorrelationContext(cid):
         logger.info(json.dumps(event, ensure_ascii=False, sort_keys=True))
 
-    # Optional DB persistence (best-effort)
-    if os.getenv("FIXPOINT_AUDIT_LOG_DB", "").lower() in ("1", "true", "yes"):
+    # Persist to DB (best-effort — never breaks runtime).
+    # Can be disabled with RAILO_AUDIT_LOG_DB=false for unit tests.
+    if os.getenv("RAILO_AUDIT_LOG_DB", "1").lower() not in ("0", "false", "no"):
         try:
             from core.db import insert_audit_log
 
@@ -188,17 +193,19 @@ def log_webhook_event(
 def log_processing_result(
     correlation_id: str,
     status: str,
-    message: str,
+    message: str | None,
     metadata: Optional[Dict[str, Any]] = None,
 ):
     """Log processing result with structured data."""
     with CorrelationContext(correlation_id):
         log_data = {
             "status": status,
-            "message": message,
+            "msg": message or "",  # avoid shadowing LogRecord reserved 'message' attr
         }
         if metadata:
-            log_data.update(metadata)
+            # Rename 'message' key in metadata to avoid logging conflict
+            safe_meta = {("msg" if k == "message" else k): v for k, v in metadata.items()}
+            log_data.update(safe_meta)
         
         if status == "error":
             logger.error(f"Processing failed: {message}", extra=log_data)
@@ -208,12 +215,22 @@ def log_processing_result(
             logger.info(f"Processing: {message}", extra=log_data)
 
     # Audit trail (structured)
+    pr_val = (metadata or {}).get("pr_number")
+    pr_num: int | None
+    if isinstance(pr_val, str):
+        try:
+            pr_num = int(pr_val)
+        except ValueError:
+            pr_num = None
+    else:
+        pr_num = pr_val  # already int or None
+
     log_audit_event(
         action="processing_result",
         result=str(status),
         correlation_id=correlation_id,
         repo=log_data.get("repo"),
-        pr_number=log_data.get("pr_number"),
+        pr_number=pr_num,
         metadata={"message": message, **(metadata or {})},
     )
 

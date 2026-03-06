@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Dict, ContextManager
+from typing import Optional, Dict, Iterator
 from contextlib import contextmanager
 
 
@@ -32,7 +32,7 @@ class IsolationConfig:
 def isolated_workspace(
     repo_path: Path,
     config: Optional[IsolationConfig] = None,
-) -> ContextManager[Path]:
+) -> Iterator[Path]:
     """
     Context manager that yields a workspace path suitable for running
     scans / fixes in isolation.

@@ -8,7 +8,7 @@ import os
 from typing import Optional
 from urllib.parse import urlencode
 
-import requests
+import requests  # type: ignore[import-untyped]
 
 
 def get_oauth_authorize_url(state: str) -> str:

@@ -13,11 +13,14 @@ JSON file and optionally summarised in PR comments or logs.
 """
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 import json
 import uuid
+
+logger = logging.getLogger(__name__)
 
 
 # Central definition of which file extensions Fixpoint is allowed to modify.
@@ -303,6 +306,6 @@ def write_safety_report(root: Path, report: DecisionReport, filename: str = "saf
         return path
     except Exception as exc:  # pragma: no cover - defensive
         # We avoid importing core.observability here to keep dependencies minimal.
-        print(f"Warning: failed to write safety report: {exc}")
+        logger.warning("Failed to write safety report: %s", exc)
         return Path(filename)
 

@@ -67,7 +67,7 @@ def find_xss_in_template(content: str, file_path: str = "") -> List[XSSVulnerabi
     Returns:
         List of XSSVulnerability objects
     """
-    vulnerabilities = []
+    vulnerabilities: list[XSSVulnerability] = []
     lines = content.split('\n')
     
     for i, line in enumerate(lines, 1):
@@ -97,7 +97,7 @@ def find_xss_in_python(code: str) -> List[XSSVulnerability]:
     Returns:
         List of XSSVulnerability objects
     """
-    vulnerabilities = []
+    vulnerabilities: list[XSSVulnerability] = []
     
     try:
         tree = ast.parse(code)

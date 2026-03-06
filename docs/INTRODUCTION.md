@@ -1,10 +1,10 @@
-# Why Fixpoint?
+# Why Railo?
 
 **Stop waiting days for security reviews. Start shipping in minutes.**
 
-Fixpoint is a deterministic security patch bot that enforces compliance at merge time—so security findings become merged fixes, not backlog. As AI increases PR volume, Fixpoint keeps security debt at zero.
+Railo is a deterministic security patch bot that enforces compliance at merge time—so security findings become merged fixes, not backlog. As AI increases PR volume, Railo keeps security debt at zero.
 
-**Positioning:** *The fixed point in your workflow where security issues are detected and corrected before merge—no AI, no wait, no backlog.*
+**Positioning:** _The fixed point in your workflow where security issues are detected and corrected before merge—no AI, no wait, no backlog._
 
 ---
 
@@ -39,6 +39,7 @@ Finally merged (3-5 days later)
 ```
 
 **The result?**
+
 - Developers frustrated by slow merges
 - Security teams overwhelmed with repetitive issues
 - Release cycles delayed by compliance blockers
@@ -48,36 +49,36 @@ Finally merged (3-5 days later)
 
 ## The Solution
 
-Fixpoint eliminates this bottleneck by **automatically fixing** security vulnerabilities the moment they're detected.
+Railo eliminates this bottleneck by **automatically fixing** security vulnerabilities the moment they're detected.
 
 ```
 Developer opens PR
     ↓
-Fixpoint scans → finds issue → fixes it
+Railo scans → finds issue → creates Fix PR
     ↓
-PR ready to merge (minutes later)
+Fix PR ready to merge (minutes later)
 ```
 
 No manual intervention. No waiting. No context-switching.
 
 ---
 
-## What Makes Fixpoint Different
+## What Makes Railo Different
 
 ### 1. Deterministic Fixes (No AI Hallucinations)
 
-Unlike AI-powered tools that "suggest" fixes, Fixpoint applies **rule-based transformations**:
+Unlike AI-powered tools that "suggest" fixes, Railo applies **rule-based transformations**:
 
-| Vulnerability | Fix Applied |
-|---------------|-------------|
-| SQL Injection | Converts to parameterized queries |
+| Vulnerability     | Fix Applied                                      |
+| ----------------- | ------------------------------------------------ |
+| SQL Injection     | Converts to parameterized queries                |
 | Hardcoded Secrets | Replaces with `os.environ.get()` / `process.env` |
-| XSS in Templates | Removes unsafe `\|safe` filters |
-| XSS in Python | Replaces `mark_safe()` with `escape()` |
-| Command Injection | Converts to list-based `subprocess` |
-| Path Traversal | Adds path validation |
-| JS/TS Secrets | Replaces with `process.env.API_KEY` |
-| JS/TS DOM XSS | Replaces `innerHTML` with `textContent` |
+| XSS in Templates  | Removes unsafe `\|safe` filters                  |
+| XSS in Python     | Replaces `mark_safe()` with `escape()`           |
+| Command Injection | Converts to list-based `subprocess`              |
+| Path Traversal    | Adds path validation                             |
+| JS/TS Secrets     | Replaces with `process.env.API_KEY`              |
+| JS/TS DOM XSS     | Replaces `innerHTML` with `textContent`          |
 
 **Same input → Same output. Every time.**
 
@@ -93,10 +94,10 @@ No LLM randomness. No "it worked last time but not this time." Just predictable,
 
 ### 2. Trust-First Approach
 
-Start in **warn mode** — Fixpoint comments on PRs with proposed fixes but doesn't change anything:
+Start in **warn mode** — Railo comments on PRs with proposed fixes but doesn't change anything:
 
 ```
-⚡ Fixpoint found 1 vulnerability
+⚡ Railo found 1 vulnerability
 
 📍 app.py line 15 - SQL Injection
 
@@ -115,8 +116,8 @@ Your team reviews the fixes, builds confidence, then graduates to **enforce mode
 Add one file. That's it.
 
 ```yaml
-# .github/workflows/fixpoint.yml
-name: Fixpoint
+# .github/workflows/railo.yml
+name: Railo
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -150,27 +151,31 @@ No agents to install. No dashboards to configure. No seats to purchase.
 ## Who Is This For?
 
 ### Startups Moving Fast
+
 Ship secure code without slowing down. Focus on features, not security fixes.
 
 ### Teams Without Security Engineers
+
 Get enterprise-grade security automation without hiring specialists.
 
 ### Organizations With Compliance Requirements
+
 SOC 2, HIPAA, PCI-DSS — Fixpoint ensures common vulnerabilities never make it to production.
 
 ### DevOps Teams
+
 Reduce PR cycle time. Fewer security-related re-reviews means faster deployments.
 
 ---
 
 ## Real Impact
 
-| Metric | Before Fixpoint | After Fixpoint |
-|--------|-----------------|----------------|
-| Time to fix SQL injection | 2-4 hours | 0 minutes |
-| PR review cycles | 3-5 rounds | 1-2 rounds |
-| Developer context switches | Multiple | None |
-| Security team ticket volume | High | Reduced 60%+ |
+| Metric                      | Before Fixpoint | After Fixpoint |
+| --------------------------- | --------------- | -------------- |
+| Time to fix SQL injection   | 2-4 hours       | 0 minutes      |
+| PR review cycles            | 3-5 rounds      | 1-2 rounds     |
+| Developer context switches  | Multiple        | None           |
+| Security team ticket volume | High            | Reduced 60%+   |
 
 ---
 
@@ -201,9 +206,9 @@ Reduce PR cycle time. Fewer security-related re-reviews means faster deployments
                           │
                           ▼
 ┌─────────────────────────────────────────────────────────┐
-│  3. REPORT                                              │
+│  3. FIX PR                                              │
 │     Warn Mode: Comment with proposed fix                │
-│     Enforce Mode: Commit fix to PR branch               │
+│     Enforce Mode: Create separate Fix PR → base branch  │
 └─────────────────────────────────────────────────────────┘
                           │
                           ▼
@@ -239,9 +244,10 @@ Once comfortable, change `mode: warn` to `mode: enforce` for automatic fixes.
 
 ## Frequently Asked Questions
 
-### Will Fixpoint break my code?
+### Will Railo break my code?
 
-No. Fixpoint only makes **safe, deterministic transformations**:
+No. Railo only makes **safe, deterministic transformations**:
+
 - SQL queries become parameterized (same functionality, secure)
 - Secrets become environment variable lookups (same functionality, secure)
 - XSS filters are removed (Django/Jinja2 auto-escapes by default)
@@ -286,14 +292,14 @@ We're actively developing:
 
 - **More Languages**: Go, Java, Ruby
 - **IDE Integration**: Fix vulnerabilities before you commit
-- **Enterprise Features**: SSO, audit logs, custom rules (see Fixpoint Cloud/Enterprise)
+- **Enterprise Features**: SSO, audit logs, custom rules (see Railo Cloud/Enterprise)
 
 ---
 
 ## Start Today
 
 ```yaml
-uses: IWEBai/fixpoint@v1
+uses: IWEBai/fixpoint@v1 # Railo GitHub Action
 ```
 
 One line. Zero security debt.
@@ -310,4 +316,4 @@ One line. Zero security debt.
 
 ---
 
-*Fixpoint by [IWEB](https://www.iwebai.space) — Because security shouldn't slow you down.*
+_Railo by [IWEB](https://www.iwebai.space) — Because security shouldn't slow you down._

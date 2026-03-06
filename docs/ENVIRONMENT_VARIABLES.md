@@ -45,25 +45,25 @@ Secret for validating GitHub webhook signatures (self-hosted / repo webhooks).
 python -c "import secrets; print(secrets.token_hex(32))"
 ```
 
-### GITHUB_APP_WEBHOOK_SECRET
+### GITHUB_WEBHOOK_SECRET
 
 Webhook secret for GitHub App webhooks (from App settings).
 
-| Property | Value                       |
-| -------- | --------------------------- |
-| Required | Yes (when using GitHub App) |
-| Default  | Empty                       |
-| Used by  | Webhook server              |
+| Property | Value                        |
+| -------- | ---------------------------- |
+| Required | Yes (when using GitHub App)  |
+| Default  | Empty                        |
+| Used by  | Webhook server (API + Flask) |
 
 **Location:** GitHub App → Developer settings → Webhook → Secret
 
 **Example:**
 
 ```bash
-GITHUB_APP_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxx
+GITHUB_WEBHOOK_SECRET=whsec_xxxxxxxxxxxxxxxx
 ```
 
-**Dual mode:** Both `WEBHOOK_SECRET` and `GITHUB_APP_WEBHOOK_SECRET` can be set. The server tries each during signature verification.
+**Dual mode:** Both `WEBHOOK_SECRET` and `GITHUB_WEBHOOK_SECRET` can be set. The server tries each during signature verification.
 
 ---
 
@@ -92,6 +92,22 @@ PEM content of the app's private key. Alternative: use `GITHUB_APP_PRIVATE_KEY_P
 | Format   | `-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----` |
 
 **Note:** Use `\n` for newlines when embedding in env.
+
+### GITHUB_APP_PRIVATE_KEY_PEM_BASE64
+
+Base64-encoded PEM for the app private key (single-line). Useful for Docker secrets.
+
+| Property | Value                     |
+| -------- | ------------------------- |
+| Required | Yes (or PATH/PEM)         |
+| Default  | None                      |
+| Used by  | `core/github_app_auth.py` |
+
+**Example:**
+
+```bash
+GITHUB_APP_PRIVATE_KEY_PEM_BASE64=$(base64 -w0 app.pem)
+```
 
 ### GITHUB_APP_PRIVATE_KEY_PATH
 

@@ -158,6 +158,37 @@ def _check_value_patterns(value: str) -> Optional[Tuple[str, str]]:
     return None
 
 
+def _expr_to_str(expr: ast.AST) -> Optional[str]:
+    """Best-effort conversion of an AST expression to a string literal."""
+    if isinstance(expr, ast.Constant) and isinstance(expr.value, str):
+        return expr.value
+    if isinstance(expr, ast.Str):  # Python < 3.8
+        return expr.s
+    if hasattr(ast, "unparse"):
+        try:
+            return ast.unparse(expr)
+        except Exception:
+            return None
+    return None
+
+
+def _is_env_lookup(expr: ast.AST) -> bool:
+    """Return True when expression already pulls from the environment (idempotency guard)."""
+    # Matches os.environ.get("VAR")
+    if isinstance(expr, ast.Call):
+        # os.environ.get(...)
+        if isinstance(expr.func, ast.Attribute) and expr.func.attr == "get":
+            value = expr.func.value
+            if isinstance(value, ast.Attribute) and value.attr == "environ":
+                if isinstance(value.value, ast.Name) and value.value.id == "os":
+                    return True
+        # os.getenv(...)
+        if isinstance(expr.func, ast.Attribute):
+            if isinstance(expr.func.value, ast.Name) and expr.func.value.id == "os" and expr.func.attr == "getenv":
+                return True
+    return False
+
+
 def find_hardcoded_secrets(code: str) -> List[HardcodedSecret]:
     """
     Find hardcoded secrets in Python code using AST analysis.
@@ -173,7 +204,7 @@ def find_hardcoded_secrets(code: str) -> List[HardcodedSecret]:
     except SyntaxError:
         return []
     
-    secrets = []
+    secrets: List[HardcodedSecret] = []
     
     for node in ast.walk(tree):
         # Check assignments: password = "secret123"
@@ -184,23 +215,22 @@ def find_hardcoded_secrets(code: str) -> List[HardcodedSecret]:
                     
                     # Check if variable name suggests a secret
                     if any(secret_name in var_name for secret_name in SECRET_VARIABLE_NAMES):
-                        # Get the assigned value
-                        value = None
-                        if isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
-                            value = node.value.value
-                        elif isinstance(node.value, ast.Str):  # Python < 3.8
-                            value = node.value.s
+                        # Skip if it's already reading from environment
+                        if _is_env_lookup(node.value):
+                            continue
+                        # Get the assigned value (best-effort string extraction)
+                        value_str: Optional[str] = _expr_to_str(node.value)
                         
-                        if value and not _is_placeholder(value):
+                        if value_str and not _is_placeholder(value_str):
                             # Check for pattern match
-                            pattern_match = _check_value_patterns(value)
+                            pattern_match = _check_value_patterns(value_str)
                             confidence = pattern_match[1] if pattern_match else "medium"
                             secret_type = pattern_match[0] if pattern_match else "suspicious_assignment"
                             
                             secrets.append(HardcodedSecret(
                                 secret_type=secret_type,
                                 var_name=target.id,
-                                value=_mask_secret(value),
+                                value=_mask_secret(value_str),
                                 line_number=node.lineno,
                                 column=node.col_offset,
                                 confidence=confidence,
@@ -209,7 +239,7 @@ def find_hardcoded_secrets(code: str) -> List[HardcodedSecret]:
         
         # Check dictionary literals: {"password": "secret123"}
         elif isinstance(node, ast.Dict):
-            for key, value in zip(node.keys, node.values):
+            for key, value_expr in zip(node.keys, node.values):
                 if isinstance(key, ast.Constant) and isinstance(key.value, str):
                     key_name = key.value.lower()
                 elif isinstance(key, ast.Str):
@@ -218,11 +248,9 @@ def find_hardcoded_secrets(code: str) -> List[HardcodedSecret]:
                     continue
                 
                 if any(secret_name in key_name for secret_name in SECRET_VARIABLE_NAMES):
-                    val_str = None
-                    if isinstance(value, ast.Constant) and isinstance(value.value, str):
-                        val_str = value.value
-                    elif isinstance(value, ast.Str):
-                        val_str = value.s
+                    if _is_env_lookup(value_expr):
+                        continue
+                    val_str = _expr_to_str(value_expr)
                     
                     if val_str and not _is_placeholder(val_str):
                         pattern_match = _check_value_patterns(val_str)
@@ -243,11 +271,9 @@ def find_hardcoded_secrets(code: str) -> List[HardcodedSecret]:
         elif isinstance(node, ast.Call):
             for keyword in node.keywords:
                 if keyword.arg and keyword.arg.lower() in SECRET_VARIABLE_NAMES:
-                    val_str = None
-                    if isinstance(keyword.value, ast.Constant) and isinstance(keyword.value.value, str):
-                        val_str = keyword.value.value
-                    elif isinstance(keyword.value, ast.Str):
-                        val_str = keyword.value.s
+                    if _is_env_lookup(keyword.value):
+                        continue
+                    val_str = _expr_to_str(keyword.value)
                     
                     if val_str and not _is_placeholder(val_str):
                         pattern_match = _check_value_patterns(val_str)

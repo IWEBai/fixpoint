@@ -1,18 +1,19 @@
-# Getting Started with Fixpoint
+# Getting Started with Railo
 
-This guide walks you through setting up and using Fixpoint.
+Railo is an automated security-fix bot that installs as a **GitHub App**. Once installed on your organization or repository, Railo watches every pull request, scans for security vulnerabilities, and opens a companion fix PR — all without any workflow files or self-hosted infrastructure.
 
 ---
 
 ## Table of Contents
 
-1. [Prerequisites](#prerequisites)
-2. [Installation Options](#installation-options)
-3. [GitHub Action Setup](#github-action-setup)
-4. [Webhook Server Setup](#webhook-server-setup)
-5. [Demo Repository Setup](#demo-repository-setup)
-6. [Verification](#verification)
-7. [Troubleshooting](#troubleshooting)
+1. [Install the Railo GitHub App](#phase-a-install-the-railo-github-app)
+2. [How Railo Processes a PR](#phase-b-how-railo-processes-a-pr)
+3. [Reading Railo's Output](#phase-c-reading-railos-output)
+4. [CI Monitoring and Auto-merge](#phase-d-ci-monitoring-and-auto-merge)
+5. [Operation Modes](#phase-e-operation-modes)
+6. [Dashboard](#phase-f-dashboard)
+7. [Configuration](#configuration)
+8. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -51,315 +52,230 @@ gh auth status
 
 ---
 
-## Installation Options
+## Phase A: Install the Railo GitHub App
 
-### Option A: GitHub Action (Recommended)
+### Step 1 — Start installation
 
-Add Fixpoint to your repository with zero infrastructure.
+Visit the Railo app page on GitHub and click **Install**. GitHub will prompt you to select where to install it:
 
-**Create `.github/workflows/fixpoint.yml`:**
+- **All repositories** in your organization, or
+- **Only select repositories** (recommended to start)
+
+### Step 2 — Authorize & complete
+
+GitHub redirects back to Railo after you authorize. Railo records the installation and registers your selected repositories. No additional configuration is needed — Railo is now active.
+
+### Step 3 — Verify
+
+Open any repository where Railo was installed and create a test PR. You should see a **Railo** check-run appear within a few seconds of opening the PR.
+
+> **Permissions Railo requests:** `contents: read`, `pull-requests: write`, `checks: write`, `statuses: write`, `metadata: read`.
+
+---
+
+## Phase B: How Railo Processes a PR
+
+Every time a PR is **opened** or **synchronized** (new commit pushed), GitHub sends a webhook event to Railo. Here is what happens:
+
+| Step                       | What Railo does                                                                                                                                     |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **B1 — Receive webhook**   | Validates the HMAC-SHA256 signature using the shared webhook secret. Rejects unsigned or tampered payloads with HTTP 401.                           |
+| **B2 — Idempotency check** | Stores the GitHub delivery ID and ignores exact retries. If the same event arrives twice, Railo returns `{"status": "duplicate"}` and does nothing. |
+| **B3 — Kill-switch**       | If `RAILO_KILL_SWITCH=1` is set, Railo stops immediately (HTTP 503). Used during incidents to halt all processing.                                  |
+| **B4 — Repository check**  | Verifies the repository is registered and not individually disabled in the admin dashboard.                                                         |
+| **B5 — Rate limiting**     | Enforces per-PR rate limits to prevent "synchronize storms" from overwhelming the system.                                                           |
+| **B6 — Enqueue**           | Puts the scan job onto a background RQ queue. Returns **HTTP 202** to GitHub immediately so the webhook does not time out.                          |
+
+Processing then continues asynchronously in a worker process.
+
+---
+
+## Phase C: Reading Railo's Output
+
+After scanning, Railo creates several artifacts on the PR:
+
+### Check run
+
+A **Railo Security Scan** check run appears in the PR's Checks tab:
+
+- `success` — no security findings
+- `failure` — findings detected (in warn mode)
+- `neutral` — findings detected and a fix PR was opened (in fix mode)
+
+Diff annotations are added directly to the **Files changed** tab showing the affected line. Click an annotation to see the rule ID and suggested remediation.
+
+### PR comment (warn mode)
+
+When findings are detected in warn mode, Railo posts a comment like:
+
+```
+🔍 Railo found 2 security issue(s)
+
+| File | Rule | Line | Proposed fix |
+|------|------|------|--------------|
+| app/db.py | sqli.parameterized-query | 47 | Use parameterized queries |
+| utils/auth.py | secrets.hardcoded-password | 12 | Use environment variable |
+
+To apply these fixes automatically, switch to fix mode.
+```
+
+### Fix PR (fix/auto-merge mode)
+
+When Railo is in **fix** or **auto-merge** mode it:
+
+1. Checks out the PR's head branch into a temporary workspace
+2. Runs targeted patchers for each finding type (SQLi, XSS, Secrets, Command Injection, Path Traversal, SSRF)
+3. Commits the changes and pushes a new branch named `railo/fix-<vuln>-<sha>-pr<N>-<timestamp>`
+4. Opens a companion PR with the title **"Railo: Fix \<vuln type\> (\<N\> issue(s)) from PR #\<N\>"**
+5. Posts a comment on your original PR linking to the fix PR with a Safety Score (0–100)
+
+The original PR is **never modified**. Railo always works on a separate branch.
+
+> **Safety Score** is a 0–100 heuristic: higher means the patch is smaller and more targeted. A score below 60 triggers a warning in the fix PR description.
+
+---
+
+## Phase D: CI Monitoring and Auto-merge
+
+When `railo_mode = auto_merge`, Railo also monitors the CI pipeline on its fix PRs:
+
+| CI result                    | Railo action                                                                                     |
+| ---------------------------- | ------------------------------------------------------------------------------------------------ |
+| **All checks pass** (Tier A) | Posts a comment: _"All checks passed — this fix PR is safe to merge."_                           |
+| **A check fails** (Tier B)   | Reverts the fix branch and posts a comment explaining what failed. The original PR remains open. |
+
+Railo determines auto-merge eligibility by checking whether the fix PR's head SHA matches the latest push, all required status checks have passed, and the PR has not been manually closed or merged by a human.
+
+> Railo **never force-merges**. If any required check fails, it reverts rather than bypassing CI.
+
+---
+
+## Phase E: Operation Modes
+
+Set the mode per-repository via the dashboard or the `FIXPOINT_MODE` environment variable:
+
+| Mode         | Behavior                                                                                                                    |
+| ------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `warn`       | Posts a comment with proposed fixes. Does not create a branch or open a PR. Status check set to **failure** to block merge. |
+| `fix`        | Creates a fix PR. Posts a link comment on the original PR. Status check set to **neutral**.                                 |
+| `auto_merge` | Same as `fix`, plus auto-merges the fix PR when CI passes.                                                                  |
+
+### Mode downgrade rules
+
+Railo automatically downgrades the mode to protect against unsafe operations:
+
+- **Fork PRs:** `fix` → `warn` (no write access to the fork)
+- **Force-warn org:** `fix` → `warn` (set by an admin during incidents)
+- **Time budget exceeded:** `fix` → `warn` (scan took longer than `max_runtime_seconds`)
+- **No push permission:** `fix` → `warn` (token lacks `contents: write`)
+
+When a downgrade occurs, Railo records the reason in the audit log and displays a notice in its PR comment.
+
+### Guardrails that block auto-fix
+
+Even in `fix` mode, Railo will refuse to commit if any guardrail fires:
+
+| Guardrail           | Condition                                                             |
+| ------------------- | --------------------------------------------------------------------- |
+| **Max diff lines**  | Patch touches more than `max_diff_lines` (default: 200) lines         |
+| **Diff quality**    | Patch quality score below threshold (non-minimal changes detected)    |
+| **Low confidence**  | All findings below the confidence gate threshold                      |
+| **Loop prevention** | Latest commit author is the Railo bot (prevents infinite retry loops) |
+
+---
+
+## Phase F: Dashboard
+
+The Railo dashboard is available at `https://<your-railo-host>/dashboard` (requires GitHub OAuth login).
+
+### Key views
+
+| View             | URL                   | Description                                            |
+| ---------------- | --------------------- | ------------------------------------------------------ |
+| **Runs**         | `/dashboard`          | Recent scan runs with status, timing, and vuln counts  |
+| **Repositories** | `/dashboard/repos`    | All registered repositories and their settings         |
+| **Org policy**   | `/dashboard/org`      | Organization-wide mode and rule overrides              |
+| **Audit log**    | `/dashboard/audit`    | Full audit trail of every Railo decision               |
+| **Metrics**      | `/api/metrics/health` | JSON health snapshot (runs/hr, failures, queue depths) |
+| **Prometheus**   | `/metrics`            | Prometheus text-format scrape endpoint                 |
+
+### Security team workflow
+
+1. Log in at `/dashboard` with your GitHub account
+2. Review the **Runs** view for any recent `fix_pr_failed` or `enforce_guardrails_blocked` events
+3. Use **Org policy** to enable/disable specific Semgrep rule IDs without redeploying
+4. Use the **Kill-switch** toggle to pause all processing immediately during an incident
+5. Export the **Audit log** for compliance reporting
+
+### Manager/executive workflow
+
+1. The `/api/metrics/health` endpoint provides a JSON summary suitable for uptime dashboards:
+   ```json
+   {
+     "runs_per_hour": 12,
+     "failed_runs_24h": 1,
+     "reverts_24h": 0,
+     "queue_depths": { "default": 0, "high": 0 }
+   }
+   ```
+2. The `/metrics` Prometheus endpoint can be scraped by Grafana or Datadog for trend charts
+
+---
+
+## Configuration
+
+Railo reads an optional `.fixpoint.yml` file from the root of each repository:
 
 ```yaml
-name: Fixpoint
-
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-
-permissions:
-  contents: write
-  pull-requests: write
-  statuses: write
-
-jobs:
-  fixpoint:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.head_ref }}
-          fetch-depth: 0
-
-      - name: Fixpoint
-        uses: IWEBai/fixpoint@v1
-        with:
-          mode: warn # or "enforce" for auto-fix
-          base_branch: ${{ github.base_ref }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+# .fixpoint.yml
+max_runtime_seconds: 90 # Abort scan after this many seconds
+max_diff_lines: 200 # Refuse to commit patch larger than this
+baseline_mode: false # Filter pre-existing findings (set baseline_sha below)
+baseline_sha: "" # Git SHA to diff against for baseline filtering
 ```
 
-**That's it!** Fixpoint will run on every PR.
-
-### Option B: Self-Hosted Webhook Server
-
-For organizations that need self-hosted deployments.
-
-1. **Clone the repository:**
-
-   ```bash
-   git clone https://github.com/IWEBai/fixpoint.git
-   cd fixpoint
-   ```
-
-2. **Install dependencies:**
-
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-3. **Configure environment:**
-
-   ```bash
-   cp .env.example .env
-   # Edit .env with your settings
-   ```
-
-4. **Start the server:**
-
-   ```bash
-   python webhook_server.py
-   ```
-
-5. **Configure GitHub webhook:**
-   - URL: `https://your-domain.com/webhook`
-   - Content type: `application/json`
-   - Secret: Your `WEBHOOK_SECRET`
-   - Events: Pull requests
-
-See [Environment Variables](./ENVIRONMENT_VARIABLES.md) for configuration options.
-
-### Option C: CLI Usage
-
-For local testing and one-off scans. Scans Python and JavaScript/TypeScript (`.py`, `.js`, `.ts`, `.jsx`, `.tsx`).
-
-```bash
-# Clone and install
-git clone https://github.com/IWEBai/fixpoint.git
-cd fixpoint
-pip install -r requirements.txt
-pip install semgrep  # Required for scanning (Linux/Mac; not supported on Windows)
-
-# Scan a repository (warn mode)
-python main.py /path/to/repo --warn-mode
-
-# Scan and fix (enforce mode)
-python main.py /path/to/repo
-
-# Scan PR diff only
-python main.py /path/to/repo --pr-mode --base-ref main --head-ref feature-branch
-
-# Create a baseline at a commit (noise suppression)
-python main.py baseline create --sha <commit-sha>
-```
-
----
-
-## GitHub Action Setup
-
-### Step 1: Add Workflow File
-
-Create `.github/workflows/fixpoint.yml` in your repository (see above).
-
-### Step 2: Choose Mode
-
-**Warn Mode (default):**
-
-- Posts comments with suggested fixes
-- Sets status check to FAIL
-- Does NOT modify code
-
-**Enforce Mode:**
-
-- Automatically applies fixes
-- Commits to PR branch
-- Sets status check to PASS
-
-Start with `warn` mode to review fixes, then switch to `enforce` once you trust them.
-
-### Step 3: Configure Branch Protection (Optional)
-
-To block merges until violations are fixed:
-
-1. Go to **Settings → Branches → Branch protection rules**
-2. Click **Add rule**
-3. Branch name pattern: `main`
-4. Enable **"Require status checks to pass before merging"**
-5. Search and select: `fixpoint/compliance`
-6. Save
-
----
-
-## Webhook Server Setup
-
-### Configuration
-
-Create `.env` file:
-
-```bash
-# Required
-GITHUB_TOKEN=ghp_xxxxxxxxxxxx
-WEBHOOK_SECRET=your_secret_here
-
-# Mode
-FIXPOINT_MODE=warn
-ENVIRONMENT=production
-
-# Server
-PORT=8000
-DEBUG=false
-```
-
-See [Environment Variables](./ENVIRONMENT_VARIABLES.md) for all options.
-
-### Docker Deployment
-
-```bash
-docker build -t fixpoint .
-docker run -p 8000:8000 --env-file .env fixpoint
-```
-
-### Verify Deployment
-
-```bash
-curl http://localhost:8000/health
-# Should return: {"status": "healthy"}
-```
-
----
-
-## Demo Repository Setup
-
-To test Fixpoint with sample PRs:
-
-### One-command demo (fork -> PR -> comments + SARIF)
-
-```bash
-gh repo fork IWEBai/fixpoint-demo --clone && cd fixpoint-demo && git checkout -b demo/fixpoint && python - <<'PY'
-Path = __import__("pathlib").Path
-Path("demo_vuln.py").write_text(
-   """import sqlite3\n\n"
-   "def get_user(email):\n"
-   "    conn = sqlite3.connect('users.db')\n"
-   "    cur = conn.cursor()\n"
-   "    query = f\"SELECT * FROM users WHERE email = '{email}'\"\n"
-   "    cur.execute(query)\n"
-   "    return cur.fetchone()\n"
-)
-PY
-git add demo_vuln.py && git commit -m "demo: add SQLi" && git push -u origin HEAD && gh pr create --fill
-```
-
-Open the PR and you should see:
-
-- Fixpoint comment with proposed or applied fixes
-- SARIF results uploaded to Code Scanning
-- Annotations on the diff (check the PR Files tab)
-
-### Manual Setup
-
-1. Create a new repository
-2. Add the Fixpoint workflow file
-3. Create a PR with vulnerable code:
-   ```python
-   query = f"SELECT * FROM users WHERE email = '{email}'"
-   cursor.execute(query)
-   ```
-4. Create a PR with safe code:
-   ```python
-   query = "SELECT * FROM users WHERE email = %s"
-   cursor.execute(query, (email,))
-   ```
-
----
-
-## Verification
-
-### Check PR with Violation
-
-- [ ] Fixpoint workflow runs
-- [ ] Comment posted with fix proposal
-- [ ] Status check shows **FAIL** (`fixpoint/compliance`)
-- [ ] Merge blocked (if branch protection configured)
-
-### Check PR with Clean Code
-
-- [ ] Fixpoint workflow runs
-- [ ] Status check shows **PASS**
-- [ ] No comments (no violations)
-- [ ] Merge allowed
-
-### Test Enforce Mode
-
-1. Change workflow: `mode: enforce`
-2. Push commit to PR with violation
-3. Bot commits fix automatically
-4. Status changes to **PASS**
+All fields are optional. If the file is absent or invalid, Railo uses safe defaults and posts an error comment explaining what is misconfigured.
 
 ---
 
 ## Troubleshooting
 
-### "To get started with GitHub CLI, please run: gh auth login"
+### No check run appears on my PR
 
-**Solution:** Authenticate GitHub CLI first:
-
-```bash
-gh auth login
-```
-
-### "Command not found: gh"
-
-**Solution:** Install GitHub CLI from https://cli.github.com/
+- Confirm the Railo GitHub App is installed on the repository. Go to **Settings → Integrations → GitHub Apps** and verify Railo is listed.
+- Check that the PR action is `opened` or `synchronize`. Railo ignores other actions (e.g., `labeled`, `closed`).
+- If `RAILO_KILL_SWITCH=1` is set, Railo returns HTTP 503 and does nothing.
 
 ### Webhook returns 401
 
-**Causes:**
+- The webhook secret configured in GitHub does not match `GITHUB_WEBHOOK_SECRET`/`WEBHOOK_SECRET` in Railo's environment.
+- Ensure you are using HMAC-SHA256 (`X-Hub-Signature-256` header), not the legacy SHA-1 header.
 
-- Invalid signature (check `WEBHOOK_SECRET` matches)
-- Missing `GITHUB_TOKEN`
-- Repository not in allowlist
+### Fix PR not created even in fix mode
 
-**Debug:** Check server logs for specific error message.
+Check the original PR for a Railo error comment. Common causes:
 
-### No status check appearing
+| Error                        | Cause                                                              |
+| ---------------------------- | ------------------------------------------------------------------ |
+| `enforce_guardrails_blocked` | Patch exceeded `max_diff_lines` or quality check failed            |
+| `fix_pr_failed`              | Git push failed — check branch protection rules on the base branch |
+| `low_confidence`             | Semgrep findings were below the confidence gate                    |
+| `loop_prevention`            | Latest commit is from the Railo bot; will retry on next human push |
 
-**Causes:**
+### Railo is posting repeated comments
 
-- Workflow not triggered (check workflow file)
-- Permissions missing (need `statuses: write`)
-- Workflow failed (check Actions tab)
+This can happen if delivery-ID idempotency is disabled or the Redis store is unavailable. Check that `REDIS_URL` is set and reachable. Railo falls back to in-memory deduplication when Redis is unavailable, which is lost on restart.
 
 ---
 
 ## Next Steps
 
-- [API Reference](./API_REFERENCE.md) - Webhook API documentation
-- [Environment Variables](./ENVIRONMENT_VARIABLES.md) - Configuration reference
-- [ROADMAP](../ROADMAP.md) - Upcoming features
+- [API Reference](./API_REFERENCE.md) — full webhook and REST API documentation
+- [Environment Variables](./ENVIRONMENT_VARIABLES.md) — all configuration options
+- [Architecture](./ARCHITECTURE.md) — system design and data flow
+- [Runbook](./RUNBOOK.md) — on-call procedures and incident response
+- [ROADMAP](../ROADMAP.md) — upcoming features
 
 ---
 
-## Using Fixpoint? Tell Us
-
-Your feedback and adoption help us improve Fixpoint and plan paid offerings.
-
-| We'd love to...         | How                                                                                                                                                                 |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Know who's using it** | Reply in [Who's using Fixpoint?](https://github.com/IWEBai/fixpoint/discussions/categories/whos-using-fixpoint) (optional: company/repo name).                      |
-| **Get your feedback**   | Open an [Issue](https://github.com/IWEBai/fixpoint/issues) or [Discussion](https://github.com/IWEBai/fixpoint/discussions) — bugs, feature ideas, or questions.     |
-| **Offer you more**      | Need hosted Fixpoint (SaaS) or enterprise support? [Get in touch](https://github.com/IWEBai/fixpoint/discussions/categories/general) — we're building paid options. |
-
----
-
-## Support & Community
-
-- **Website:** [iwebai.space](https://www.iwebai.space)
-- **Community:** [r/IWEBai on Reddit](https://www.reddit.com/r/IWEBai/)
-- **Issues:** [GitHub Issues](https://github.com/IWEBai/fixpoint/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/IWEBai/fixpoint/discussions)
-- **Documentation:** This guide and linked references
-
----
-
-_Fixpoint by [IWEB](https://www.iwebai.space)_
+_Railo — automated security fixes for every pull request_

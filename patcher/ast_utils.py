@@ -59,8 +59,8 @@ def extract_fstring_variables(fstring_node: ast.JoinedStr) -> List[str]:
                 variables.append(part.value.id)
             elif isinstance(part.value, ast.Attribute):
                 # Handle attribute access like user.email
-                attr_parts = []
-                node = part.value
+                attr_parts: List[str] = []
+                node: ast.AST = part.value
                 while isinstance(node, ast.Attribute):
                     attr_parts.insert(0, node.attr)
                     node = node.value
@@ -83,8 +83,8 @@ def reconstruct_fstring_sql(fstring_node: ast.JoinedStr) -> str:
             if isinstance(part.value, ast.Name):
                 sql_parts.append(f"{{{part.value.id}}}")
             elif isinstance(part.value, ast.Attribute):
-                attr_parts = []
-                attr_node = part.value
+                attr_parts: List[str] = []
+                attr_node: ast.AST = part.value
                 while isinstance(attr_node, ast.Attribute):
                     attr_parts.insert(0, attr_node.attr)
                     attr_node = attr_node.value
@@ -120,8 +120,8 @@ def extract_concat_variables(node: ast.BinOp) -> Tuple[List[str], str]:
             variables.append(n.id)
             parts.append(f"{{{n.id}}}")
         elif isinstance(n, ast.Attribute):
-            attr_parts = []
-            attr_node = n
+            attr_parts: List[str] = []
+            attr_node: ast.AST = n
             while isinstance(attr_node, ast.Attribute):
                 attr_parts.insert(0, attr_node.attr)
                 attr_node = attr_node.value
@@ -166,8 +166,8 @@ def extract_format_variables(call_node: ast.Call) -> Tuple[List[str], str]:
         if isinstance(arg, ast.Name):
             variables.append(arg.id)
         elif isinstance(arg, ast.Attribute):
-            attr_parts = []
-            attr_node = arg
+            attr_parts: List[str] = []
+            attr_node: ast.AST = arg
             while isinstance(attr_node, ast.Attribute):
                 attr_parts.insert(0, attr_node.attr)
                 attr_node = attr_node.value
@@ -211,8 +211,8 @@ def extract_percent_variables(node: ast.BinOp) -> Tuple[List[str], str]:
             if isinstance(elt, ast.Name):
                 variables.append(elt.id)
             elif isinstance(elt, ast.Attribute):
-                attr_parts = []
-                attr_node = elt
+                attr_parts: List[str] = []
+                attr_node: ast.AST = elt
                 while isinstance(attr_node, ast.Attribute):
                     attr_parts.insert(0, attr_node.attr)
                     attr_node = attr_node.value
