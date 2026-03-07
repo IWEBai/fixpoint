@@ -30,17 +30,17 @@ export default function Layout() {
     } catch {
       // Ignore logout errors — navigate away regardless
     }
-    navigate("/login");
+    navigate("/");
   };
 
   const navLinks = [
-    { to: "/", label: "Analytics", icon: LayoutDashboard },
-    { to: "/runs", label: "Run History", icon: History },
-    { to: "/installations", label: "Installations", icon: Server },
-    { to: "/org-settings", label: "Org Policy", icon: Building2 },
-    { to: "/repo-settings", label: "Repo Settings", icon: Settings },
-    { to: "/notifications", label: "Notifications", icon: Bell },
-    { to: "/settings", label: "Settings", icon: Settings },
+    { to: "/app", label: "Analytics", icon: LayoutDashboard },
+    { to: "/app/runs", label: "Run History", icon: History },
+    { to: "/app/installations", label: "Installations", icon: Server },
+    { to: "/app/org-settings", label: "Org Policy", icon: Building2 },
+    { to: "/app/repo-settings", label: "Repo Settings", icon: Settings },
+    { to: "/app/notifications", label: "Notifications", icon: Bell },
+    { to: "/app/settings", label: "Settings", icon: Settings },
   ];
 
   return (

@@ -258,7 +258,7 @@ def callback_github(
             "installation_ids": [],
         }
         token = create_access_token(data=user_info, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-        redirect = RedirectResponse(url=FRONTEND_BASE_URL, status_code=302)
+        redirect = RedirectResponse(url=f"{FRONTEND_BASE_URL.rstrip('/')}/app", status_code=302)
         _set_session_cookie(redirect, token)
         return redirect
 
@@ -326,7 +326,7 @@ def callback_github(
         "installation_ids": installation_ids,
     }
     token = create_access_token(data=user_info, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
-    redirect = RedirectResponse(url=FRONTEND_BASE_URL, status_code=302)
+    redirect = RedirectResponse(url=f"{FRONTEND_BASE_URL.rstrip('/')}/app", status_code=302)
     _set_session_cookie(redirect, token)
     return redirect
 

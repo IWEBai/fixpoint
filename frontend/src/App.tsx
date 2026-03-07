@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Layout from "./components/Layout";
+import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Analytics from "./pages/Analytics";
 import RunHistory from "./pages/RunHistory";
@@ -14,10 +15,12 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<Login />} />
 
-        {/* Protected routes */}
-        <Route path="/" element={<Layout />}>
+        {/* Protected app routes */}
+        <Route path="/app" element={<Layout />}>
           <Route index element={<Analytics />} />
           <Route path="runs" element={<RunHistory />} />
           <Route path="installations" element={<Installations />} />
