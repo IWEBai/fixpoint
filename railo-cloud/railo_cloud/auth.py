@@ -265,10 +265,17 @@ def callback_github(
             raise HTTPException(status_code=400, detail="Invalid OAuth state")
 
     # Exchange code for access token
+    # redirect_uri MUST match the one sent in the authorize request
+    _callback_uri = f"{FRONTEND_BASE_URL.rstrip('/')}/auth/callback/github"
     try:
         token_resp = _requests.post(
             "https://github.com/login/oauth/access_token",
-            json={"client_id": GITHUB_CLIENT_ID, "client_secret": GITHUB_CLIENT_SECRET, "code": code},
+            json={
+                "client_id": GITHUB_CLIENT_ID,
+                "client_secret": GITHUB_CLIENT_SECRET,
+                "code": code,
+                "redirect_uri": _callback_uri,
+            },
             headers={"Accept": "application/json"},
             timeout=10,
         )
