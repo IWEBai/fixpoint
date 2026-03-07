@@ -125,7 +125,12 @@ def _fetch_github_user(access_token: str) -> dict:
 
 
 def _fetch_user_installations(access_token: str) -> list[dict]:
-    """Return all GitHub App installations the user has access to (paginated)."""
+    """Return all GitHub App installations the user has access to (paginated).
+
+    NOTE: /user/installations requires a GitHub App user-to-server token.
+    A plain OAuth App token will receive 403 — in that case we return an empty
+    list so login still succeeds; installations can be seeded later via webhooks.
+    """
     installations: list[dict] = []
     url: str | None = "https://api.github.com/user/installations"
     headers = {
@@ -135,6 +140,12 @@ def _fetch_user_installations(access_token: str) -> list[dict]:
     }
     while url:
         resp = _requests.get(url, headers=headers, timeout=10)
+        if resp.status_code == 403:
+            logger.warning(
+                "GET /user/installations returned 403 — OAuth App token cannot list "
+                "GitHub App installations. Login will proceed with empty installation list."
+            )
+            return []
         resp.raise_for_status()
         data = resp.json()
         installations.extend(data.get("installations", []))
