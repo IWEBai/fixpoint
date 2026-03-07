@@ -16,7 +16,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-import httpx
+import requests as _requests
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from fastapi.responses import RedirectResponse
@@ -111,37 +111,34 @@ def _github_oauth_configured() -> bool:
 
 
 def _fetch_github_user(access_token: str) -> dict:
-    with httpx.Client(timeout=10) as client:
-        resp = client.get(
-            "https://api.github.com/user",
-            headers={
-                "Authorization": f"Bearer {access_token}",
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
-            },
-        )
-        resp.raise_for_status()
-        return resp.json()
+    resp = _requests.get(
+        "https://api.github.com/user",
+        headers={
+            "Authorization": f"Bearer {access_token}",
+            "Accept": "application/vnd.github+json",
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+        timeout=10,
+    )
+    resp.raise_for_status()
+    return resp.json()
 
 
 def _fetch_user_installations(access_token: str) -> list[dict]:
     """Return all GitHub App installations the user has access to (paginated)."""
     installations: list[dict] = []
     url: str | None = "https://api.github.com/user/installations"
-    with httpx.Client(timeout=10) as client:
-        while url:
-            resp = client.get(
-                url,
-                headers={
-                    "Authorization": f"Bearer {access_token}",
-                    "Accept": "application/vnd.github+json",
-                    "X-GitHub-Api-Version": "2022-11-28",
-                },
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            installations.extend(data.get("installations", []))
-            url = resp.links.get("next", {}).get("url")
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+    while url:
+        resp = _requests.get(url, headers=headers, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        installations.extend(data.get("installations", []))
+        url = resp.links.get("next", {}).get("url") if hasattr(resp, 'links') else None
     return installations
 
 
@@ -285,14 +282,14 @@ def callback_github(
 
     # Exchange code for access token
     try:
-        with httpx.Client(timeout=10) as client:
-            token_resp = client.post(
-                "https://github.com/login/oauth/access_token",
-                json={"client_id": GITHUB_CLIENT_ID, "client_secret": GITHUB_CLIENT_SECRET, "code": code},
-                headers={"Accept": "application/json"},
-            )
-            token_resp.raise_for_status()
-            token_data = token_resp.json()
+        token_resp = _requests.post(
+            "https://github.com/login/oauth/access_token",
+            json={"client_id": GITHUB_CLIENT_ID, "client_secret": GITHUB_CLIENT_SECRET, "code": code},
+            headers={"Accept": "application/json"},
+            timeout=10,
+        )
+        token_resp.raise_for_status()
+        token_data = token_resp.json()
     except Exception as exc:
         logger.exception("GitHub token exchange failed")
         raise HTTPException(status_code=502, detail="GitHub token exchange failed") from exc
@@ -305,7 +302,7 @@ def callback_github(
     try:
         gh_user = _fetch_github_user(access_token)
         installations = _fetch_user_installations(access_token)
-    except httpx.HTTPError as exc:
+    except _requests.RequestException as exc:
         logger.exception("GitHub API call failed")
         raise HTTPException(status_code=502, detail="GitHub API error") from exc
 
