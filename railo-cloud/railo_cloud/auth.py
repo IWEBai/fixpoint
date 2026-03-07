@@ -210,27 +210,21 @@ def login_github():
             return RedirectResponse(url="/auth/callback/github?mock=1", status_code=302)
         raise HTTPException(status_code=503, detail="GitHub OAuth not configured")
 
-    state = secrets.token_urlsafe(32)
-    try:
-        from railo_cloud.db.base import get_session_factory as _get_session_factory
-        _session_make = _get_session_factory()
-        from railo_cloud.models import OAuthState
-        with _session_make() as session:
-            session.add(OAuthState(
-                id=uuid.uuid4(),
-                state=state,
-                expires_at=datetime.now(timezone.utc) + timedelta(minutes=10),
-            ))
-            session.commit()
-    except Exception:
-        logger.exception("Failed to persist OAuth state")
+    # Sign the state as a short-lived JWT so no DB storage is needed.
+    nonce = secrets.token_urlsafe(16)
+    state = jwt.encode(
+        {"nonce": nonce, "exp": datetime.now(timezone.utc) + timedelta(minutes=10)},
+        SECRET_KEY,
+        algorithm=ALGORITHM,
+    )
 
     callback_uri = f"{FRONTEND_BASE_URL.rstrip('/')}/auth/callback/github"
+    import urllib.parse
     params = (
         f"client_id={GITHUB_CLIENT_ID}"
-        f"&redirect_uri={callback_uri}"
+        f"&redirect_uri={urllib.parse.quote(callback_uri, safe='')}"
         f"&scope=read%3Auser+user%3Aemail"
-        f"&state={state}"
+        f"&state={urllib.parse.quote(state, safe='')}"
     )
     return RedirectResponse(url=f"https://github.com/login/oauth/authorize?{params}", status_code=302)
 
@@ -261,24 +255,14 @@ def callback_github(
     if not code:
         raise HTTPException(status_code=400, detail="Missing OAuth code")
 
-    # Validate CSRF state
+    # Validate CSRF state (signed JWT — no DB lookup needed)
     if state:
         try:
-            from railo_cloud.db.base import get_session_factory as _get_session_factory
-            _session_make = _get_session_factory()
-            from railo_cloud.models import OAuthState
-            with _session_make() as session:
-                state_row = session.query(OAuthState).filter_by(state=state).first()
-                if state_row is None:
-                    raise HTTPException(status_code=400, detail="Invalid OAuth state")
-                if state_row.expires_at.replace(tzinfo=timezone.utc) < datetime.now(timezone.utc):
-                    raise HTTPException(status_code=400, detail="OAuth state expired")
-                session.delete(state_row)
-                session.commit()
-        except HTTPException:
-            raise
-        except Exception:
-            logger.exception("OAuth state validation error  continuing")
+            jwt.decode(state, SECRET_KEY, algorithms=[ALGORITHM])
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=400, detail="OAuth state expired")
+        except jwt.PyJWTError:
+            raise HTTPException(status_code=400, detail="Invalid OAuth state")
 
     # Exchange code for access token
     try:
