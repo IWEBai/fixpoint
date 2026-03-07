@@ -55,7 +55,7 @@ jobs:
             --data-binary @railo-cloud/fixtures/pull_request.json \
             | grep -q "^2" || (echo "Webhook failed" && cat /tmp/webhook.log && exit 1)
 
-        - name: Poll runs and assert fields
+      - name: Poll runs and assert fields
         run: |
           python - <<'PY'
           import json, os, sys, time, urllib.request
@@ -94,12 +94,12 @@ jobs:
                       data = json.load(resp)
                   runs = data.get("runs", [])
                   if runs:
-                latest = runs[0]
-                assert_run_fields(latest)
-                print(
-                  "Found run with status="
-                  f"{latest.get('status')} engine_version={latest.get('engine_version')}"
-                )
+                      latest = runs[0]
+                      assert_run_fields(latest)
+                      print(
+                        "Found run with status="
+                        f"{latest.get('status')} engine_version={latest.get('engine_version')}"
+                      )
                       sys.exit(0)
               except Exception as exc:  # noqa: BLE001
                   print(f"poll {attempt}: {exc}")
