@@ -2,8 +2,8 @@ import React from "react";
 
 export default function Login() {
   const handleLogin = () => {
-    // Redirect to the Flask OAuth entry point (works in all environments)
-    window.location.href = "/dashboard";
+    // Redirect to GitHub OAuth entry point
+    window.location.href = "/auth/login/github";
   };
 
   return (

@@ -179,10 +179,20 @@ def root() -> dict[str, str]:
 api_router = APIRouter(prefix="/api", dependencies=[Depends(require_dev)])
 
 
+def _user_installation_ids(user: dict) -> list[int] | None:
+    """Return installation_ids to scope queries, or None for system users (see all)."""
+    if user.get("sub") == "system":
+        return None  # API-key authenticated system user — unrestricted
+    ids = user.get("installation_ids")
+    if ids is None:
+        return None  # Legacy/mock token without the field — unrestricted
+    return [int(i) for i in ids]
+
+
 @app.get("/dashboard")
 def dashboard_redirect():
-    # Backwards-compatible entrypoint used by the web login button.
-    return RedirectResponse(url="/auth/callback/github?role=admin", status_code=302)
+    # Backwards-compatible entrypoint: redirect to real OAuth flow.
+    return RedirectResponse(url="/auth/login/github", status_code=302)
 
 
 @app.get("/metrics", dependencies=[Depends(require_dev)])
@@ -227,8 +237,9 @@ def create_installation(payload: schemas.InstallationCreate, session=Depends(db_
 
 
 @api_router.get("/repos", response_model=schemas.ReposList)
-def list_repositories(session=Depends(db_session)):
-    repos = crud.list_repos(session=session)
+def list_repositories(session=Depends(db_session), user: dict = Depends(require_dev)):
+    inst_ids = _user_installation_ids(user)
+    repos = crud.list_repos(session=session, installation_ids=inst_ids)
     return schemas.ReposList(repos=[_serialize_repo(r) for r in repos])
 
 
@@ -253,8 +264,9 @@ def update_repository(repo_id: uuid.UUID, payload: schemas.RepoUpdate, session=D
 
 
 @api_router.get("/runs", response_model=schemas.RunsList)
-def list_runs(session=Depends(db_session)):
-    runs = crud.list_runs(session=session)
+def list_runs(session=Depends(db_session), user: dict = Depends(require_dev)):
+    inst_ids = _user_installation_ids(user)
+    runs = crud.list_runs(session=session, installation_ids=inst_ids)
     return schemas.RunsList(runs=[_serialize_run(r) for r in runs])
 
 
@@ -267,14 +279,16 @@ def get_run(run_id: uuid.UUID, session=Depends(db_session)):
 
 
 @api_router.get("/analytics/summary", response_model=schemas.AnalyticsSummaryResponse)
-def get_analytics_summary_endpoint(session=Depends(db_session)):
-    data = crud.get_analytics_summary(session)
+def get_analytics_summary_endpoint(session=Depends(db_session), user: dict = Depends(require_dev)):
+    inst_ids = _user_installation_ids(user)
+    data = crud.get_analytics_summary(session, installation_ids=inst_ids)
     return schemas.AnalyticsSummaryResponse(**data)
 
 
 @api_router.get("/analytics/timeseries", response_model=schemas.AnalyticsTimeseriesResponse)
-def get_analytics_timeseries_endpoint(days: int = 30, session=Depends(db_session)):
-    data = crud.get_analytics_timeseries(session, days=days)
+def get_analytics_timeseries_endpoint(days: int = 30, session=Depends(db_session), user: dict = Depends(require_dev)):
+    inst_ids = _user_installation_ids(user)
+    data = crud.get_analytics_timeseries(session, days=days, installation_ids=inst_ids)
     return schemas.AnalyticsTimeseriesResponse(data=data)
 
 

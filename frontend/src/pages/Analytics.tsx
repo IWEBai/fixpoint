@@ -160,10 +160,15 @@ export default function Analytics() {
   if (loading) {
     return (
       <div className="space-y-8">
-        <h2 className="text-3xl font-bold tracking-tight">Analytics Overview</h2>
+        <h2 className="text-3xl font-bold tracking-tight">
+          Analytics Overview
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-slate-900 border border-slate-800 rounded-xl p-6 animate-pulse">
+            <div
+              key={i}
+              className="bg-slate-900 border border-slate-800 rounded-xl p-6 animate-pulse"
+            >
               <div className="flex items-center space-x-4">
                 <div className="w-14 h-14 rounded-lg bg-slate-800" />
                 <div className="space-y-2">

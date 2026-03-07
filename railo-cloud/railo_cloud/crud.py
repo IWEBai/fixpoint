@@ -80,8 +80,10 @@ def update_run_status(
     return run
 
 
-def list_runs(session: Session, limit: int = 50) -> Iterable[Run]:
+def list_runs(session: Session, limit: int = 50, installation_ids: list[int] | None = None) -> Iterable[Run]:
     stmt = select(Run).order_by(Run.created_at.desc()).limit(limit)
+    if installation_ids is not None:
+        stmt = stmt.where(Run.run_installation_id.in_(installation_ids))
     return session.scalars(stmt).all()
 
 
@@ -158,8 +160,10 @@ def upsert_repository(
     return repo
 
 
-def list_repos(session: Session, limit: int = 200) -> list[Repository]:
+def list_repos(session: Session, limit: int = 200, installation_ids: list[int] | None = None) -> list[Repository]:
     stmt = select(Repository).order_by(Repository.created_at.desc()).limit(limit)
+    if installation_ids is not None:
+        stmt = stmt.where(Repository.installation_id.in_(installation_ids))
     return session.scalars(stmt).all()
 
 
@@ -171,11 +175,12 @@ def get_repo_by_owner_name(session: Session, owner: str, name: str) -> Optional[
     stmt = select(Repository).where(Repository.repo_owner == owner, Repository.repo_name == name)
     return session.scalar(stmt)
 
-def get_analytics_summary(session: Session) -> dict:
+def get_analytics_summary(session: Session, installation_ids: list[int] | None = None) -> dict:
     from sqlalchemy import func
-    rows = session.execute(
-        select(Run.status, func.count().label("cnt")).group_by(Run.status)
-    ).all()
+    stmt = select(Run.status, func.count().label("cnt")).group_by(Run.status)
+    if installation_ids is not None:
+        stmt = stmt.where(Run.run_installation_id.in_(installation_ids))
+    rows = session.execute(stmt).all()
     
     total = sum(r.cnt for r in rows)
     failed = sum(r.cnt for r in rows if r.status == "failed")
@@ -188,13 +193,13 @@ def get_analytics_summary(session: Session) -> dict:
         "avg_duration_seconds": 0.0,
     }
 
-def get_analytics_timeseries(session: Session, days: int = 30) -> list[dict]:
+def get_analytics_timeseries(session: Session, days: int = 30, installation_ids: list[int] | None = None) -> list[dict]:
     from sqlalchemy import func
     from datetime import datetime, timedelta
     
     cutoff_date = datetime.now() - timedelta(days=days)
     
-    rows = session.execute(
+    base_stmt = (
         select(
             func.to_char(Run.created_at, 'YYYY-MM-DD').label('day'),
             Run.status,
@@ -203,7 +208,10 @@ def get_analytics_timeseries(session: Session, days: int = 30) -> list[dict]:
         .where(Run.created_at >= cutoff_date)
         .group_by('day', Run.status)
         .order_by('day')
-    ).all()
+    )
+    if installation_ids is not None:
+        base_stmt = base_stmt.where(Run.run_installation_id.in_(installation_ids))
+    rows = session.execute(base_stmt).all()
     
     # Aggregate by day
     data_by_day = {}

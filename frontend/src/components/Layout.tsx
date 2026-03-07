@@ -13,10 +13,15 @@ import api from "../lib/api";
 
 export default function Layout() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<{ username?: string; role?: string } | null>(null);
+  const [user, setUser] = useState<{ username?: string; role?: string } | null>(
+    null,
+  );
 
   useEffect(() => {
-    api.get("/auth/me", { baseURL: "/" }).then((res) => setUser(res.data)).catch(() => {});
+    api
+      .get("/auth/me", { baseURL: "/" })
+      .then((res) => setUser(res.data))
+      .catch(() => {});
   }, []);
 
   const handleLogout = async () => {
@@ -93,7 +98,7 @@ export default function Layout() {
               </span>
             </div>
           </div>
-</header>
+        </header>
         <div className="flex-1 overflow-auto p-8 bg-gradient-to-b from-slate-900 to-slate-950">
           <Outlet />
         </div>

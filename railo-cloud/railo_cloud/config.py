@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     allowed_origins: str = "*"  # Comma-separated CORS origins; "*" for open dev
     max_request_body_size: int = 1_048_576  # 1 MB webhook body limit
 
+    # GitHub OAuth (real login)
+    github_oauth_client_id: str = ""
+    github_oauth_client_secret: str = ""
+    allow_mock_auth: bool = False  # Allow mock login even when ENVIRONMENT=production
+
     model_config = SettingsConfigDict(
         env_prefix="",
         env_file=".env",

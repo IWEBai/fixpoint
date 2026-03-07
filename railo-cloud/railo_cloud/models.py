@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from enum import Enum
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, ForeignKey, Integer, String, UniqueConstraint, func
+from sqlalchemy import BigInteger, JSON, Boolean, Column, DateTime, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 
 from railo_cloud.db.base import Base
@@ -37,6 +37,9 @@ class Run(Base):
     error_summary = Column(String(1000), nullable=True)
     artifact_paths = Column(JSON, nullable=True)
     summary = Column(JSON, nullable=True)
+    # Sprint 1: tenant FK
+    run_installation_id = Column(Integer, ForeignKey("installations.installation_id", ondelete="SET NULL"), nullable=True)
+    github_user_id = Column(BigInteger, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -93,3 +96,40 @@ class Repository(Base):
     rails_preset = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class GitHubUser(Base):
+    """One row per GitHub account that has ever authenticated with Railo Cloud."""
+    __tablename__ = "github_users"
+
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    github_id = Column(BigInteger, nullable=False, unique=True)
+    login = Column(String(255), nullable=False)
+    name = Column(String(255), nullable=True)
+    avatar_url = Column(String(1024), nullable=True)
+    email = Column(String(255), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class OAuthState(Base):
+    """Short-lived CSRF token for the GitHub OAuth dance."""
+    __tablename__ = "oauth_states"
+
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    state = Column(String(128), nullable=False, unique=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+
+
+class InstallationMember(Base):
+    """Maps GitHub users to the installations they have access to."""
+    __tablename__ = "installation_members"
+    __table_args__ = (
+        UniqueConstraint("github_user_id", "installation_id", name="uq_installation_members"),
+    )
+
+    id = Column(PG_UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    github_user_id = Column(BigInteger, nullable=False)
+    installation_id = Column(Integer, ForeignKey("installations.installation_id", ondelete="CASCADE"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
