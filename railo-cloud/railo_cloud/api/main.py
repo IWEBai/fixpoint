@@ -455,7 +455,7 @@ async def webhook(request: Request, session=Depends(db_session)):
     correlation_id = str(uuid.uuid4())
 
     installation_token: str | None = None
-    if installation_id:
+    if installation_id and engine_mode != "stub":
         installation_token = get_installation_access_token(int(installation_id))
         if not installation_token:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to fetch installation token")
